@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "reachy_motion"
+version = "0.1.0"
+description = "Live voice chat with Reachy Mini — the robot generates expressive motion from what is being said, in real time."
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.11"
+dependencies = [
+    "reachy-mini>=1.10",
+    # Animator: idle breathing + crossfaded gestures + speech-driven head sway (Apache-2.0, not on PyPI)
+    "reachy-animation @ git+https://github.com/pham-tuan-binh/reachy-animation@90e25b5773353213cffe18d915d0703ba04c083b",
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "soxr>=0.5",                       # streaming resampler (no clicks between chunks)
+    "httpx>=0.27",
+    "python-dotenv>=1.0",
+    "sounddevice>=0.5",
+    "openai[realtime]>=3.12",          # gpt-live-1 lives in client.live (added in 3.12.0)
+    "elevenlabs==2.71.0",              # pinned: Agents SDK is marked beta, 3.x is in alpha
+]
+keywords = ["reachy-mini-app", "motion-generation", "voice", "gpt-live", "elevenlabs", "taiwanese"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.6"]
+# scripts/record_session.py: render a session in MuJoCo to MP4
+record = ["reachy-mini[mujoco]>=1.10", "imageio-ffmpeg>=0.5", "pillow>=10"]
+
+[project.scripts]
+reachy-motion = "reachy_motion.main:cli"
+
+[project.entry-points."reachy_mini_apps"]
+reachy_motion = "reachy_motion.main:ReachyMotion"
+
+[project.urls]
+Repository = "https://github.com/dAAAb/Reachy-Motion"
+
+[tool.setuptools]
+package-dir = { "" = "." }
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["reachy_motion*"]
+
+[tool.setuptools.package-data]
+reachy_motion = ["static/**/*", "prompts/*.txt"]
+
+[tool.ruff]
+line-length = 119

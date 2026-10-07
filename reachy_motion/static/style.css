@@ -1,0 +1,56 @@
+:root {
+  --bg: #f6f4ef; --panel: #ffffff; --ink: #1d1d1f; --muted: #6b6b70; --line: #e3e0d8;
+  --accent: #d9480f; --accent-ink: #ffffff; --robot: #2b2b2e; --robot-face: #fbfaf7; --eye: #1d1d1f;
+  --user: #1864ab; --gesture: #2b8a3e; --reflex: #e67700;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141416; --panel: #1d1d20; --ink: #ededf0; --muted: #9a9aa2; --line: #2e2e33;
+    --accent: #ff6b2b; --robot: #d8d8de; --robot-face: #2a2a2e; --eye: #ededf0;
+    --user: #74c0fc; --gesture: #69db7c; --reflex: #ffc078;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141416; --panel: #1d1d20; --ink: #ededf0; --muted: #9a9aa2; --line: #2e2e33;
+  --accent: #ff6b2b; --robot: #d8d8de; --robot-face: #2a2a2e; --eye: #ededf0;
+  --user: #74c0fc; --gesture: #69db7c; --reflex: #ffc078;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 20px 16px 40px; background: var(--bg); color: var(--ink);
+  font: 15px/1.5 -apple-system, "PingFang TC", "Noto Sans TC", system-ui, sans-serif;
+  max-width: 1080px; margin-inline: auto;
+}
+header h1 { margin: 0; font-size: 26px; letter-spacing: -0.02em; }
+.sub { margin: 2px 0 16px; color: var(--muted); }
+.modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.modes button {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 12px 14px;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--ink);
+  font: inherit; cursor: pointer; text-align: left;
+}
+.modes button span { color: var(--muted); font-size: 12.5px; }
+.modes button.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.modes button.stop { align-items: center; justify-content: center; font-weight: 600; }
+.status { margin: 10px 2px 16px; color: var(--muted); font-size: 13.5px; min-height: 1.5em; }
+main { display: grid; grid-template-columns: minmax(240px, 340px) 1fr; gap: 16px; align-items: start; }
+@media (max-width: 720px) { main { grid-template-columns: 1fr; } }
+.preview { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+.preview svg { width: 100%; height: auto; display: block; }
+.preview figcaption { font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); text-align: center; }
+.base { fill: var(--robot); opacity: .18; }
+.torso { fill: var(--robot); opacity: .85; }
+.face { fill: var(--robot-face); stroke: var(--robot); stroke-width: 4; }
+.eye { fill: var(--eye); }
+.ant { stroke: var(--robot); stroke-width: 5; stroke-linecap: round; }
+.log { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; min-width: 0; }
+.log h2 { margin: 0 0 8px; font-size: 15px; }
+#events { list-style: none; margin: 0; padding: 0; max-height: 64vh; overflow-y: auto; }
+#events li { padding: 6px 0; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
+#events li:first-child { border-top: 0; }
+.tag { display: inline-block; min-width: 64px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.ev-user .tag { color: var(--user); }
+.ev-robot .tag { color: var(--accent); }
+.ev-gesture .tag { color: var(--gesture); }
+.ev-gesture.reflex .tag { color: var(--reflex); }
+.recipe { display: block; margin-top: 2px; font: 11.5px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); }

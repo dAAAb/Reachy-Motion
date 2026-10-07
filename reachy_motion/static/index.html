@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reachy-Motion</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <h1>Reachy-Motion</h1>
+    <p class="sub">邊聊邊動 — speech-driven motion for Reachy Mini</p>
+  </header>
+
+  <section class="modes" aria-label="Voice mode">
+    <button data-mode="gpt-live"><b>GPT-Live-1</b><span>OpenAI · full duplex</span></button>
+    <button data-mode="elevenlabs"><b>ElevenLabs v4</b><span>Agent · your voice</span></button>
+    <button data-mode="taigi"><b>台語</b><span>Local · ASR → SARC → TTS</span></button>
+    <button id="stop" class="stop">Stop</button>
+  </section>
+  <p id="status" class="status">idle</p>
+
+  <main>
+    <figure class="preview">
+      <svg id="robot" viewBox="-110 -125 220 220" role="img" aria-label="Live pose preview">
+        <g id="body"><ellipse cx="0" cy="62" rx="58" ry="22" class="base"/><rect x="-40" y="22" width="80" height="42" rx="18" class="torso"/></g>
+        <g id="head">
+          <line id="antR" x1="-22" y1="-38" x2="-22" y2="-88" class="ant"/>
+          <line id="antL" x1="22" y1="-38" x2="22" y2="-88" class="ant"/>
+          <rect x="-52" y="-42" width="104" height="70" rx="30" class="face"/>
+          <circle cx="-19" cy="-8" r="11" class="eye"/><circle cx="19" cy="-8" r="11" class="eye"/>
+        </g>
+      </svg>
+      <figcaption id="poseText">—</figcaption>
+    </figure>
+
+    <section class="log">
+      <h2>Conversation &amp; gestures</h2>
+      <ol id="events"></ol>
+    </section>
+  </main>
+  <script src="/static/main.js"></script>
+</body>
+</html>

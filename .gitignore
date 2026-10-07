@@ -1,0 +1,33 @@
+# secrets — never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# runtime artefacts
+logs/
+recordings/
+*.wav
+*.mp3
+!reachy_motion/assets/**/*.wav
+
+# os / editors
+.DS_Store
+.idea/
+.vscode/
+.obsidian/workspace*.json
+
+# local backups (may contain private agent prompts)
+.backups/

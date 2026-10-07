@@ -1,0 +1,18 @@
+Reachy-Motion
+Copyright 2026 Reachy-Motion contributors
+
+This product includes software developed by third parties:
+
+* reachy-motion-generator — https://github.com/pham-tuan-binh/reachy-motion-generator
+  Copyright Binh Pham. Licensed under the Apache License, Version 2.0.
+  The motion recipe language, its validator and the `expand` routine (reachy_motion/motion/recipe.py) are adapted
+  from planner/dsl.py and common/plan.py at commit 96497d6; the planner prompt's channel description and worked
+  examples (reachy_motion/motion/prompt.py) are adapted from planner/prompt.py.
+
+* reachy-animation — https://github.com/pham-tuan-binh/reachy-animation
+  Copyright Binh Pham. Licensed under the Apache License, Version 2.0. Used as a dependency (not vendored).
+
+* Reachy Mini SDK — https://github.com/pollen-robotics/reachy_mini
+  Copyright Pollen Robotics. Licensed under the Apache License, Version 2.0. Used as a dependency.
+
+No model weights, voices or reference audio are distributed with this repository.
