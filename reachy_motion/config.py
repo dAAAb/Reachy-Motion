@@ -23,8 +23,15 @@ def _load_dotenv() -> None:
         from dotenv import load_dotenv
     except ImportError:
         return
-    for p in (Path.cwd() / ".env", Path(__file__).resolve().parent.parent / ".env"):
-        if p.exists():
+    # Earlier files win (override=False): explicit file, working dir, per-user config (used on the robot), repo checkout.
+    candidates = [
+        Path(os.environ["REACHY_MOTION_ENV_FILE"]) if os.environ.get("REACHY_MOTION_ENV_FILE") else None,
+        Path.cwd() / ".env",
+        Path.home() / ".config" / "reachy_motion" / ".env",
+        Path(__file__).resolve().parent.parent / ".env",
+    ]
+    for p in candidates:
+        if p is not None and p.exists():
             load_dotenv(p, override=False)
 
 
