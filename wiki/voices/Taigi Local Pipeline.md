@@ -47,11 +47,23 @@ Override with `REACHY_MOTION_TAIGI_{ASR,LLM,TTS}_URL`.
 Gestures are planned **in parallel with TTS** and bound to the sentence's audio position via a `Future`, so they
 start with the audio (the first planner gesture landed within ~0.1 s of the first audio).
 
+## v0.2: standalone + on the LAN
+
+- **`reachy-motion-asr`** (`pip install -e ".[asr]"`): our own Breeze-ASR-26 server (mlx-audio 0.4.3 + the
+  no-speech token patch), OpenAI-compatible, Traditional output via OpenCC. No AIRI package needed. MLX GPU
+  streams are thread-bound, so load + inference run on ONE worker thread (else "There is no Stream(gpu, 1) in
+  current thread"). Measured 0.35–0.96 s per utterance.
+- **`reachy-motion-node`** (`pip install -e ".[node]"`): HTTP relays (Host rewritten — Ollama refuses non-localhost
+  Host headers when bound to loopback) for ASR / Ollama / TTS on ports 18101-18103, advertised as
+  `_reachy-taigi._tcp` over mDNS. The robot found it and health-checked all three across Wi-Fi.
+- Saying 「你可以講台語給我聽嗎」 makes the robot probe (configured URLs → alternate ports → mDNS) and switch, or
+  explain in its current voice which service is missing.
+- Ollama runs LLMs; it does not run Whisper-type ASR models, hence the separate MLX server.
+
 ## Running it
 
 1. Start the services (from the AIRI lab): ASR-26, Ollama with the SARC model, KaedeTai (`start-server.sh`).
 2. `reachy-motion --mode taigi --audio local` on the Mac, robot over Wi-Fi (or `--no-robot` to preview).
-3. On the robot instead: expose the three services on the LAN (bind 0.0.0.0) and point the URLs at the Mac —
-   [[Backlog]].
+3. On the robot: run `reachy-motion-asr` + Ollama + KaedeTai + `reachy-motion-node` on the Mac; the robot finds them.
 
 Related: [[Architecture]], [[Latency Measurements]].

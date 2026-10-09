@@ -20,8 +20,19 @@ lands together with the audio, on top of idle breathing and speech-driven head s
 | `elevenlabs` | **ElevenLabs Agent** with an **Eleven v4 Turbo** voice | per-chunk character alignment, ahead of playback | ~1–2 s |
 | `taigi` | **台語 / Taiwanese Hokkien**, fully local: Breeze-ASR-26 → SARC-Taigi-LLM-12b → KaedeTai GPT-SoVITS | whole sentences, before TTS | ~1.7 s warm |
 
-Switch modes live from the settings page (`http://<host>:8042`), which also shows the transcript, every gesture
-(with its recipe) and a live pose preview.
+Switch modes live from the settings page (`http://<host>:8042`) — or just ask: 「換成台語」, "switch to GPT live".
+
+## Reachy as an embodied agent (v0.2)
+
+A small **body agent** (an LLM with tools) listens to every utterance and acts on the robot, while the voice model
+keeps talking — see [Body Agent](wiki/architecture/Body%20Agent.md):
+
+- **Spoken control** — switch voice mode, volume up/down (「我聽不太清楚」 works too), look at me / stop staring.
+- **Eyes** — 「你看到什麼？」「我手上拿的是什麼？」: a camera frame goes to a vision model, the voice answers.
+- **Web** — weather, news, prices: OpenAI web search, answered in the current voice (even in 台語).
+- **Looks at you** — daemon face tracking blended under the gestures; **knows it has a body** and today's date.
+- **台語 on demand** — the robot finds a Mac sharing the Taiwanese models on the LAN (`reachy-motion-node`, mDNS),
+  or tells you what is missing.
 
 ## How gestures stay in sync
 
@@ -62,17 +73,23 @@ reachy-motion --mode gpt-live --no-robot
 # MuJoCo simulator:   reachy-mini-daemon --sim   then   reachy-motion --sim
 ```
 
-**On the robot** (Reachy Mini Wireless) it is a standard `ReachyMiniApp` (entry point `reachy_motion`): install it
-into the apps venv and start it from the dashboard; it uses the robot's own mic and speaker. Configure it with the
-environment variables in [`.env.example`](.env.example).
+**On the robot** (Reachy Mini Wireless) it is a standard `ReachyMiniApp` (entry point `reachy_motion`) and runs
+entirely on the robot with its own mic and speaker — no computer needed for GPT-Live / ElevenLabs:
+
+```bash
+/venvs/apps_venv/bin/pip install "git+https://github.com/dAAAb/Reachy-Motion"   # on the robot
+# keys + settings in ~/.config/reachy_motion/.env (see .env.example), then start it from the dashboard
+```
+Details and robot gotchas: [Running on the Robot](wiki/architecture/Running%20on%20the%20Robot.md).
 
 Local laptop audio runs **half duplex** by default (the mic is muted while the robot talks, so it doesn't hear
 itself); use a headset and `--no-half-duplex` for barge-in.
 
 ### Taiwanese mode
 
-Needs three local services (from the AIRI NTU-VH2026 speech lab): Breeze-ASR-26 (MLX), Ollama with
-`SARC-Taigi-LLM-12b`, and KaedeTai GPT-SoVITS. See [Taigi Local Pipeline](wiki/voices/Taigi%20Local%20Pipeline.md).
+Runs on an Apple-Silicon Mac: `reachy-motion-asr` (Breeze-ASR-26 on MLX, `pip install -e ".[asr]"`), Ollama with
+`SARC-Taigi-LLM-12b`, and KaedeTai GPT-SoVITS. Start `reachy-motion-node` (`.[node]`) to share them on the LAN — the
+robot finds them by itself. See [Taigi Local Pipeline](wiki/voices/Taigi%20Local%20Pipeline.md).
 No weights or reference audio are shipped here.
 
 ## Record a session without a robot
@@ -93,9 +110,9 @@ uv pip install -e ".[dev]" && pytest -q
 
 ## Status & roadmap
 
-v0.1 — all three modes run end to end (recorded and rendered in simulation); not yet accepted on a physical robot.
-Next: real-robot acceptance, a local Apple-Silicon port of Binh Pham's fine-tuned planner + flow-matching generator,
-and the Taiwanese mode on the robot itself. See the [Backlog](wiki/Backlog.md).
+v0.2 — accepted on a physical Reachy Mini Wireless (2026-10-09): all three modes, spoken control, vision and web.
+Next: delegate real-world tasks to an external agent (OpenClaw), and a local Apple-Silicon port of Binh Pham's
+fine-tuned planner + flow-matching generator. See the [Backlog](wiki/Backlog.md).
 
 ## Credits & license
 

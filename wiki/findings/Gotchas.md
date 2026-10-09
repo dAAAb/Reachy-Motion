@@ -32,5 +32,12 @@ tags: [finding, gotchas, bugs]
     (18001 / 18883); the Taiwanese mode falls back to the other port set if the configured one is down. The research
     ASR venv may lack PyAV (`ModuleNotFoundError: av` → HTTP 500 on transcription).
 
+13. **ElevenLabs does not treat talking over playback as an interruption**: its audio arrives much faster than real
+    time and the server considers the turn done once sent. Barge in locally on `tentative_user_transcript` while the
+    speaker is busy, with echo rejection (ignore text that overlaps the reply being spoken), and drop the rest of
+    the old reply's audio until the next `agent_response`.
+14. **Voice models deny having a body** ("我是語音助手，沒辦法做動作") unless told: send the embodiment text
+    (ElevenLabs `contextual_update`, GPT-Live instructions). Then they even emit motion tags like `[歪頭]` `[點頭]`.
+15. More robot-only gotchas: [[Running on the Robot]]; intent misreads: [[Body Agent]].
 
 Related: [[Latency Measurements]], [[Code Review 2026-10-08]].
