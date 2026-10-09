@@ -75,6 +75,11 @@ class Engine:
             from reachy_motion.intent import BodyAgent
 
             self.body_agent = BodyAgent(settings.planner_model, settings.openai_api_key)
+        self.web = None
+        if settings.openai_api_key:
+            from reachy_motion.web import WebLookup
+
+            self.web = WebLookup(settings.vision_model, settings.openai_api_key)
         self.eyes = None
         if settings.openai_api_key and robot is not None and getattr(robot, "media", None) is not None:
             from reachy_motion.vision import Eyes
@@ -160,6 +165,8 @@ class Engine:
                 self.switch_mode(str(cmd.arg))
             elif cmd.kind == "look":
                 self.look_and_answer(str(cmd.arg))
+            elif cmd.kind == "web":
+                self.web_and_answer(str(cmd.arg))
         except Exception as e:  # noqa: BLE001
             logger.exception("command failed")
             self.emit({"type": "status", "text": f"command failed: {e}"})
@@ -174,6 +181,16 @@ class Engine:
             return
         self.emit({"type": "seen", "text": seen, "question": question})
         self.voice.answer_from_sight(question, seen)
+
+    def web_and_answer(self, query: str) -> None:
+        if self.web is None or self.voice is None:
+            return
+        found = self.web.answer(query)
+        if not found:
+            self.voice.say("我剛剛想上網查，但是現在查不到，等一下再試試看。")
+            return
+        self.emit({"type": "found", "text": found, "question": query})
+        self.voice.answer_from_web(query, found)
 
     def _daemon_url(self) -> str | None:
         return getattr(self.robot, "_daemon_http_url", None) if self.robot is not None else None

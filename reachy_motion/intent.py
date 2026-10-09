@@ -34,6 +34,13 @@ TOOLS = [
                        "properties": {"change": {"type": "string", "enum": ["up", "down", "set"]},
                                       "level": {"type": "integer", "minimum": 0, "maximum": 100}}}}},
     {"type": "function", "function": {
+        "name": "search_web",
+        "description": "Look up live / time-sensitive information on the web: weather, news, prices, scores, "
+                       "opening hours, recent events. Not for general knowledge or chit-chat.",
+        "parameters": {"type": "object", "additionalProperties": False, "required": ["query"],
+                       "properties": {"query": {"type": "string",
+                                                "description": "the question to look up, self-contained"}}}}},
+    {"type": "function", "function": {
         "name": "look_and_describe",
         "description": "Take a picture with the robot's camera and look, to answer a question about what is in front "
                        "of it: what it sees, what the person is holding or wearing, how they look, what is around.",
@@ -67,6 +74,8 @@ it asks the robot to change one of its settings, directly or indirectly, and if 
 - Questions about what the robot can SEE need its camera: 「你看到什麼」「我手上拿的是什麼」「我今天穿這樣好看嗎」
   「你看我比什麼手勢」"what am I holding?" -> look_and_describe(question). (Turning to face the person is
   look_at_person; describing what is visible is look_and_describe; both can apply.)
+- Live information needs the web: 「今天台北天氣如何」「最新新聞」「台積電股價」"who won last night" ->
+  search_web(query). Today's date / the time is already known to the robot -> do nothing.
 - Do not switch to the mode that is already active. When in doubt, do nothing."""
 
 
@@ -79,6 +88,8 @@ def _cmd_from_call(name: str, args: dict, text: str) -> Command | None:
             return Command("volume", max(0, min(100, args["level"])), text)
         if ch in ("up", "down"):
             return Command("volume", "+" if ch == "up" else "-", text)
+    if name == "search_web" and args.get("query"):
+        return Command("web", str(args["query"]), text)
     if name == "look_and_describe" and args.get("question"):
         return Command("look", str(args["question"]), text)
     if name == "look_at_person" and "enabled" in args:

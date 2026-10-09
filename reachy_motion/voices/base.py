@@ -45,6 +45,10 @@ class VoiceMode(abc.ABC):
         self.say(f"你剛剛用攝影機看了一下，看到的是：{seen}。請用這個直接回答使用者剛才的問題「{question}」，"
                  "像是你親眼看到一樣。")
 
+    def answer_from_web(self, question: str, found: str) -> None:
+        """A web search found ``found``: let this voice answer with it."""
+        self.say(f"你剛剛幫使用者上網查了「{question}」，查到的是：{found}。請用自己的話簡短告訴使用者。")
+
     # helpers ---------------------------------------------------------------------------------------------------------
     def barge_in(self) -> None:
         """The person talked over the robot: drop queued audio and pending gestures."""

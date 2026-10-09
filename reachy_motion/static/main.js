@@ -51,6 +51,7 @@ function onEvent(e) {
     case "interrupt": addEvent("ev-int", "barge-in", "— interrupted"); robotLine = null; break;
     case "command": addEvent("ev-cmd", "command", `${e.kind} → ${e.arg}`, e.text); break;
     case "seen": addEvent("ev-cmd", "camera", e.text, e.question); break;
+    case "found": addEvent("ev-cmd", "web", e.text, e.question); break;
   }
 }
 

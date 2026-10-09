@@ -215,12 +215,18 @@ class TaigiMode(VoiceMode):
         r.raise_for_status()
         return read_wav(r.content)
 
+    def answer_from_web(self, question: str, found: str) -> None:
+        self._answer_with(question, f"你頭拄仔上網查著的資料是：{found}")
+
     def answer_from_sight(self, question: str, seen: str) -> None:
-        """Have the Taiwanese LLM answer from the camera description, then speak it sentence by sentence."""
+        self._answer_with(question, f"你的攝影機目前看著的畫面是：{seen}")
+
+    def _answer_with(self, question: str, context: str) -> None:
+        """Have the Taiwanese LLM answer with extra context, then speak it sentence by sentence."""
         import json as _json
 
         s = self.settings
-        msgs = [{"role": "system", "content": s.taigi_persona + f"你的攝影機目前看著的畫面是：{seen}"},
+        msgs = [{"role": "system", "content": s.taigi_persona + now_context("taigi") + context},
                 *self.history[-4:], {"role": "user", "content": question}]
         try:
             r = self.http.post(s.taigi_llm_url, json={"model": s.taigi_llm_model, "messages": msgs, "stream": False,
