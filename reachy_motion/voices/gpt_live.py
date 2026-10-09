@@ -115,7 +115,8 @@ class GptLiveMode(VoiceMode):
                     if in_turn and now - last_text > TURN_GAP_S:
                         in_turn = False
                         self.director.end_of_turn()
-                    if user_buf and now - user_last > 0.8:
+                    # one utterance = until 1.6 s of quiet, or until the robot starts answering
+                    if user_buf and (now - user_last > 1.6 or (in_turn and last_text > user_last)):
                         self.director.user_text(user_buf)
                         user_buf = ""
                 try:

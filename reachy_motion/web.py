@@ -28,6 +28,7 @@ class WebLookup:
                 model=self.model,
                 tools=[{"type": "web_search"}],
                 instructions=("用網路搜尋回答，繁體中文，兩三句話，給具體數字與日期，不要附網址。使用者在台灣台北。"
+                              "問題來自語音辨識，人名可能是同音錯字：找不到時改搜最可能的正確人名再回答。"
                               + now_context()),
                 input=question,
             )
