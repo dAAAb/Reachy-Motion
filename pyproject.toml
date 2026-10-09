@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "reachy_motion"
-version = "0.1.0"
+version = "0.2.0"
 description = "Live voice chat with Reachy Mini — the robot generates expressive motion from what is being said, in real time."
 readme = "README.md"
 license = { text = "Apache-2.0" }
