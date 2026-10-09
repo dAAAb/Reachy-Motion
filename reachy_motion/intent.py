@@ -76,6 +76,7 @@ it asks the robot to change one of its settings, directly or indirectly, and if 
   look_at_person; describing what is visible is look_and_describe; both can apply.)
 - Live information needs the web: 「今天天氣如何」「最新新聞」「台積電股價」"who won last night" ->
   search_web(query). Today's date / the time is already known to the robot -> do nothing.
+- Asking the robot to tell a joke, sing, move or act is conversation, not a mode switch -> do nothing.
 - Do not switch to the mode that is already active. When in doubt, do nothing."""
 
 

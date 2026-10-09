@@ -185,6 +185,13 @@ class Engine:
     def web_and_answer(self, query: str) -> None:
         if self.web is None or self.voice is None:
             return
+        # a question split across two transcript fragments triggers two lookups: answer it once
+        now = time.monotonic()
+        key = set("".join(ch for ch in query if ch.isalnum()))
+        last_key, last_t = getattr(self, "_last_web", (set(), 0.0))
+        if now - last_t < 20 and key and len(key & last_key) / len(key | last_key) > 0.5:
+            return
+        self._last_web = (key, now)
         found = self.web.answer(query)
         if not found:
             self.voice.say("我剛剛想上網查，但是現在查不到，等一下再試試看。")
