@@ -124,6 +124,7 @@ def cli() -> None:
             pass
     finally:
         engine.close()
+        engine.rest_robot()
         server.should_exit = True
         if robot is not None:
             robot.__exit__(None, None, None)

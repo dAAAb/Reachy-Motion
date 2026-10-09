@@ -80,7 +80,36 @@ class Engine:
 
     # -- lifecycle -------------------------------------------------------------------------------------------------
     def start_animation(self) -> None:
+        self.prepare_robot()
         self.animator.start()
+
+    def prepare_robot(self) -> None:
+        """Wake the robot before streaming poses.
+
+        A Wireless unit boots asleep (motors disabled). ``enable_motors()`` pins targets to the present pose, and
+        streaming ``set_target`` immediately after it can crash the daemon (reachy_mini#1430), so ease to the
+        neutral pose with ``goto_target`` first and only then start the 60 Hz animator.
+        """
+        if self.robot is None:
+            return
+        try:
+            import numpy as np
+
+            self.robot.enable_motors()
+            self.robot.goto_target(head=np.eye(4), antennas=[0.0, 0.0], body_yaw=0.0, duration=1.2)
+            self.emit({"type": "status", "text": "robot awake (motors enabled)"})
+        except Exception as e:  # noqa: BLE001 - keep running: the animator will still try set_target
+            logger.warning("could not wake the robot: %s", e)
+            self.emit({"type": "status", "text": f"could not wake the robot: {e}"})
+
+    def rest_robot(self) -> None:
+        """Put the robot back to its sleep pose (CLI exit; the daemon handles this for dashboard apps)."""
+        if self.robot is None:
+            return
+        try:
+            self.robot.goto_sleep()
+        except Exception as e:  # noqa: BLE001
+            logger.warning("goto_sleep failed: %s", e)
 
     def start(self, mode: str | None = None) -> None:
         with self._lifecycle:
