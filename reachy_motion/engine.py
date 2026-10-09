@@ -150,6 +150,13 @@ class Engine:
                 cmds = [c for c in [parse_command(utterance)] if c]
         else:
             cmds = [c for c in [parse_command(utterance)] if c]
+        # NOTICE: the small intent model keeps reading "聽不懂" (don't understand) as "can't hear" (louder).
+        # Guard: no volume change when the person says they don't understand and never mentions loudness.
+        import re as _re
+
+        if _re.search(r"聽不懂|聽不太懂|听不懂|听不太懂|不懂你", utterance) and not _re.search(
+                r"聽不清|听不清|小聲|小声|大聲|大声|音量|louder|volume", utterance):
+            cmds = [c for c in cmds if c.kind != "volume"]
         for cmd in cmds:
             self.handle_command(cmd)
 
