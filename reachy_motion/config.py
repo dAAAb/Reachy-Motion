@@ -34,15 +34,25 @@ TAIGI_PERSONA = (
 
 
 def now_context(lang: str = "zh") -> str:
-    """Current local date/time for the voice models (they don't know 'today'); the robot's clock is NTP-synced."""
+    """Current local date/time for the voice models (they don't know 'today'); the robot's clock is NTP-synced.
+
+    Time zone: ``REACHY_MOTION_TIMEZONE`` (IANA name, e.g. ``Asia/Taipei``), else the system's local zone (the
+    robot ships with UTC, so set it there).
+    """
     import datetime as _dt
 
-    tz = _dt.timezone(_dt.timedelta(hours=8))  # Taipei; the robot's TZ is UTC by default
-    now = _dt.datetime.now(tz)
+    tzname = os.environ.get("REACHY_MOTION_TIMEZONE", "")
+    try:
+        from zoneinfo import ZoneInfo
+
+        now = _dt.datetime.now(ZoneInfo(tzname)) if tzname else _dt.datetime.now().astimezone()
+    except Exception:  # noqa: BLE001 - unknown zone name: fall back to local time
+        now = _dt.datetime.now().astimezone()
+    zone = tzname or now.tzname() or ""
     wk = "一二三四五六日"[now.weekday()]
     if lang == "taigi":
-        return f"【這馬的時間】{now.year} 年 {now.month} 月 {now.day} 號，禮拜{wk}，{now.hour} 點 {now.minute} 分（台灣時間）。"
-    return f"【現在時間】{now.year} 年 {now.month} 月 {now.day} 日 星期{wk} {now:%H:%M}（台灣時間）。"
+        return f"【這馬的時間】{now.year} 年 {now.month} 月 {now.day} 號，禮拜{wk}，{now.hour} 點 {now.minute} 分（{zone}）。"
+    return f"【現在時間】{now.year} 年 {now.month} 月 {now.day} 日 星期{wk} {now:%H:%M}（{zone}）。"
 
 
 def _load_dotenv() -> None:
@@ -74,6 +84,7 @@ class Settings:
     # gesture planner
     planner_model: str = "gpt-5.4-nano"
     vision_model: str = "gpt-5.4-mini"  # describes camera frames ("what do you see?")
+    location: str = ""  # where the robot is, for web answers (weather...), e.g. "台灣台北"; empty = not assumed
     reflexes: bool = True
 
     # GPT-Live-1

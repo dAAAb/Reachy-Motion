@@ -79,7 +79,7 @@ class Engine:
         if settings.openai_api_key:
             from reachy_motion.web import WebLookup
 
-            self.web = WebLookup(settings.vision_model, settings.openai_api_key)
+            self.web = WebLookup(settings.vision_model, settings.openai_api_key, location=settings.location)
         self.eyes = None
         if settings.openai_api_key and robot is not None and getattr(robot, "media", None) is not None:
             from reachy_motion.vision import Eyes
