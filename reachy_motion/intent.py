@@ -46,7 +46,10 @@ For the person's latest utterance (Mandarin, Taiwanese written in Mandarin chara
 it asks the robot to change one of its settings, directly or indirectly, and if so call the matching tool(s).
 - Only act on requests addressed to the robot. Mentioning a topic is not a request ("GPT 是什麼？" -> nothing,
   「今天台語課很好玩」 -> nothing, 「你看我今天穿得好看嗎」 -> look_at_person(true) is fine since it asks to be seen).
-- Indirect requests count: 「我聽不太清楚」/"what? I can't hear" -> set_volume(up); 「有點吵」/"too loud" ->
+- Volume is about the ROBOT'S SPEAKER being too quiet/loud for the person. Questions about whether the robot can
+  hear the person (its microphone) are NOT volume requests: 「你聽得到我嗎」「你聽得到我講話嗎」「有聽到嗎」
+  「哈囉，聽得到嗎」"can you hear me?" -> do nothing.
+- Indirect requests count: 「我聽不太清楚」/"what? I can't hear you" -> set_volume(up); 「有點吵」/"too loud" ->
   set_volume(down); 「轉過來看我」/"face me" -> look_at_person(true); 「不要一直盯著我」 -> look_at_person(false);
   「你會講台語嗎？講給我聽」/"talk to me in Taiwanese" -> switch_voice_mode(taigi).
 - Agreement to the robot's own offer counts if the context shows the offer (robot: "要我切換成台語嗎？" person:

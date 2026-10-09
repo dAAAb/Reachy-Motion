@@ -79,6 +79,8 @@ class GptLiveMode(VoiceMode):
             if self.audio.gate():
                 x = np.zeros_like(x)  # half duplex: keep the timeline, but don't let it hear itself
             y = mic_rs(x, sr)
+            if len(y) == 0:  # the streaming resampler buffers: some calls return nothing (and the API rejects empty audio)
+                return
             loop.call_soon_threadsafe(lambda: mic_q.full() or mic_q.put_nowait(y))
 
         headers = {"Authorization": f"Bearer {s.openai_api_key}"}
@@ -96,6 +98,7 @@ class GptLiveMode(VoiceMode):
             in_turn = False
             user_buf = ""
             user_last = 0.0
+            last_error, last_error_t = "", 0.0
 
             async def pump_mic() -> None:
                 while not stop.is_set():
@@ -156,7 +159,10 @@ class GptLiveMode(VoiceMode):
                         self.on_event({"type": "user_delta", "text": ev["delta"], "start_ms": ev.get("start_ms")})
                         self.director.anticipate(user_buf)  # GPT-Live answers instantly: plan the reaction now
                     elif t == "error":
-                        self.status(f"error: {ev.get('error', ev)}")
+                        msg = str(ev.get("error", ev))
+                        if msg != last_error or time.monotonic() - last_error_t > 10:  # don't flood the log/UI
+                            self.status(f"error: {msg}")
+                            last_error, last_error_t = msg, time.monotonic()
                     elif t == "session.closed":
                         closed.set()
                         self.status(f"closed ({ev.get('reason')})")

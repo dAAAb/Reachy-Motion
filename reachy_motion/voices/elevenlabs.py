@@ -108,6 +108,8 @@ class ElevenLabsMode(VoiceMode):
             if self.audio.gate():
                 x = np.zeros_like(x)
             y = mic_rs(x, sr)
+            if len(y) == 0:  # the streaming resampler buffers: some calls return nothing (and the API rejects empty audio)
+                return
             loop.call_soon_threadsafe(lambda: mic_q.full() or mic_q.put_nowait(y))
 
         try:
