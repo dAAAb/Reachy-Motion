@@ -19,8 +19,10 @@ dependencies = [
     "httpx>=0.27",
     "python-dotenv>=1.0",
     "sounddevice>=0.5",
-    "openai[realtime]>=3.12",          # gpt-live-1 lives in client.live (added in 3.12.0)
-    "elevenlabs==2.71.0",              # pinned: Agents SDK is marked beta, 3.x is in alpha
+    # gesture planner only (chat completions). Voice modes speak their WebSockets directly, so we don't force
+    # openai>=3.12 onto the robot's shared apps venv, where Pollen's conversation app pins openai 2.x.
+    "openai>=1.50",
+    "websockets>=13",
 ]
 keywords = ["reachy-mini-app", "motion-generation", "voice", "gpt-live", "elevenlabs", "taiwanese"]
 
