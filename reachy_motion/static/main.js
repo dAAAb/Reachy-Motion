@@ -50,6 +50,7 @@ function onEvent(e) {
     case "timing": addEvent("ev-timing", "timing", `ASR ${e.asr_s}s · first audio ${e.first_audio_s}s`); break;
     case "interrupt": addEvent("ev-int", "barge-in", "— interrupted"); robotLine = null; break;
     case "command": addEvent("ev-cmd", "command", `${e.kind} → ${e.arg}`, e.text); break;
+    case "seen": addEvent("ev-cmd", "camera", e.text, e.question); break;
   }
 }
 

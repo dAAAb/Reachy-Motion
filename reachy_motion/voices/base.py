@@ -40,6 +40,11 @@ class VoiceMode(abc.ABC):
         """Make the robot tell the person something (a system notice) in this mode's voice. Best effort."""
         self.status(f"(notice) {text}")
 
+    def answer_from_sight(self, question: str, seen: str) -> None:
+        """The camera saw ``seen``: let this voice answer ``question`` with it (default: relay as a notice)."""
+        self.say(f"你剛剛用攝影機看了一下，看到的是：{seen}。請用這個直接回答使用者剛才的問題「{question}」，"
+                 "像是你親眼看到一樣。")
+
     # helpers ---------------------------------------------------------------------------------------------------------
     def barge_in(self) -> None:
         """The person talked over the robot: drop queued audio and pending gestures."""

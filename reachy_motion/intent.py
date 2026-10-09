@@ -21,7 +21,7 @@ TOOLS = [
         "name": "switch_voice_mode",
         "description": "Switch how the robot talks: 'gpt-live' (OpenAI GPT-Live voice), 'elevenlabs' (the owner's "
                        "cloned voice agent), 'taigi' (Taiwanese Hokkien / 台語, needs local services), or 'default' "
-                       "(back to Mandarin from Taiwanese).",
+                       "(ONLY when the robot is currently in 'taigi' and the person asks to go back to Mandarin).",
         "parameters": {"type": "object", "additionalProperties": False, "required": ["mode"],
                        "properties": {"mode": {"type": "string",
                                                "enum": ["gpt-live", "elevenlabs", "taigi", "default"]}}}}},
@@ -33,6 +33,13 @@ TOOLS = [
         "parameters": {"type": "object", "additionalProperties": False, "required": ["change"],
                        "properties": {"change": {"type": "string", "enum": ["up", "down", "set"]},
                                       "level": {"type": "integer", "minimum": 0, "maximum": 100}}}}},
+    {"type": "function", "function": {
+        "name": "look_and_describe",
+        "description": "Take a picture with the robot's camera and look, to answer a question about what is in front "
+                       "of it: what it sees, what the person is holding or wearing, how they look, what is around.",
+        "parameters": {"type": "object", "additionalProperties": False, "required": ["question"],
+                       "properties": {"question": {"type": "string",
+                                                   "description": "what to look for, in the person's words"}}}}},
     {"type": "function", "function": {
         "name": "look_at_person",
         "description": "Turn face tracking on (keep looking at the person with the camera) or off (stop staring).",
@@ -49,11 +56,16 @@ it asks the robot to change one of its settings, directly or indirectly, and if 
 - Volume is about the ROBOT'S SPEAKER being too quiet/loud for the person. Questions about whether the robot can
   hear the person (its microphone) are NOT volume requests: 「你聽得到我嗎」「你聽得到我講話嗎」「有聽到嗎」
   「哈囉，聽得到嗎」"can you hear me?" -> do nothing.
+- Speaking STYLE is the voice model's job, not volume: 「像講悄悄話一樣講」「小聲跟我說個秘密」"whisper to me",
+  「用興奮的語氣講」 -> do nothing.
 - Indirect requests count: 「我聽不太清楚」/"what? I can't hear you" -> set_volume(up); 「有點吵」/"too loud" ->
   set_volume(down); 「轉過來看我」/"face me" -> look_at_person(true); 「不要一直盯著我」 -> look_at_person(false);
   「你會講台語嗎？講給我聽」/"talk to me in Taiwanese" -> switch_voice_mode(taigi).
 - Agreement to the robot's own offer counts if the context shows the offer (robot: "要我切換成台語嗎？" person:
   「好啊」 -> switch_voice_mode(taigi)).
+- Questions about what the robot can SEE need its camera: 「你看到什麼」「我手上拿的是什麼」「我今天穿這樣好看嗎」
+  「你看我比什麼手勢」"what am I holding?" -> look_and_describe(question). (Turning to face the person is
+  look_at_person; describing what is visible is look_and_describe; both can apply.)
 - Do not switch to the mode that is already active. When in doubt, do nothing."""
 
 
@@ -66,6 +78,8 @@ def _cmd_from_call(name: str, args: dict, text: str) -> Command | None:
             return Command("volume", max(0, min(100, args["level"])), text)
         if ch in ("up", "down"):
             return Command("volume", "+" if ch == "up" else "-", text)
+    if name == "look_and_describe" and args.get("question"):
+        return Command("look", str(args["question"]), text)
     if name == "look_at_person" and "enabled" in args:
         return Command("gaze", bool(args["enabled"]), text)
     return None

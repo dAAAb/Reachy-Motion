@@ -213,6 +213,25 @@ class TaigiMode(VoiceMode):
         r.raise_for_status()
         return read_wav(r.content)
 
+    def answer_from_sight(self, question: str, seen: str) -> None:
+        """Have the Taiwanese LLM answer from the camera description, then speak it sentence by sentence."""
+        import json as _json
+
+        s = self.settings
+        msgs = [{"role": "system", "content": s.taigi_persona + f"你的攝影機目前看著的畫面是：{seen}"},
+                *self.history[-4:], {"role": "user", "content": question}]
+        try:
+            r = self.http.post(s.taigi_llm_url, json={"model": s.taigi_llm_model, "messages": msgs, "stream": False,
+                                                      "temperature": 0.2, "max_tokens": 160, "reasoning_effort": "none"})
+            r.raise_for_status()
+            reply = r.json()["choices"][0]["message"]["content"].strip()
+        except (httpx.HTTPError, KeyError, ValueError, _json.JSONDecodeError) as e:
+            logger.warning("sight answer failed: %s", e)
+            return
+        self.on_event({"type": "robot", "text": reply})
+        for sent in [x for x in re.split(r"(?<=[。！？!?])", reply) if x.strip()]:
+            self.say(sent)
+
     def say(self, text: str) -> None:
         """Speak a Taiwanese-Han sentence directly through the TTS (no LLM), with a gesture."""
         super().say(text)

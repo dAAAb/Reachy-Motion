@@ -75,6 +75,11 @@ class Engine:
             from reachy_motion.intent import BodyAgent
 
             self.body_agent = BodyAgent(settings.planner_model, settings.openai_api_key)
+        self.eyes = None
+        if settings.openai_api_key and robot is not None and getattr(robot, "media", None) is not None:
+            from reachy_motion.vision import Eyes
+
+            self.eyes = Eyes(robot, settings.vision_model, settings.openai_api_key)
 
     # -- events (for the web UI / logs) ----------------------------------------------------------------------------
     def emit(self, ev: dict) -> None:
@@ -152,9 +157,22 @@ class Engine:
                 self.emit({"type": "status", "text": "looking at you" if self.gaze_on else "stopped looking"})
             elif cmd.kind == "mode":
                 self.switch_mode(str(cmd.arg))
+            elif cmd.kind == "look":
+                self.look_and_answer(str(cmd.arg))
         except Exception as e:  # noqa: BLE001
             logger.exception("command failed")
             self.emit({"type": "status", "text": f"command failed: {e}"})
+
+    def look_and_answer(self, question: str) -> None:
+        if self.eyes is None or self.voice is None:
+            return
+        self.gaze_on = True  # look at the person while looking
+        seen = self.eyes.describe(question)
+        if not seen:
+            self.voice.say("我的攝影機現在拿不到畫面，暫時看不到。")
+            return
+        self.emit({"type": "seen", "text": seen, "question": question})
+        self.voice.answer_from_sight(question, seen)
 
     def _daemon_url(self) -> str | None:
         return getattr(self.robot, "_daemon_http_url", None) if self.robot is not None else None
@@ -182,6 +200,8 @@ class Engine:
             return
         try:
             current = self.running_mode
+            if target == "default" and current != "taigi":
+                return  # "back to Mandarin" only means something while speaking Taiwanese
             if target == "default":
                 target = self.settings.mode if self.settings.mode != "taigi" else "gpt-live"
                 if current == target:
