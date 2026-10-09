@@ -102,6 +102,7 @@ class Engine:
     # -- lifecycle -------------------------------------------------------------------------------------------------
     def start_animation(self) -> None:
         self.prepare_robot()
+        self.restore_volume()
         self.animator.start()
         if self.robot is not None:
             threading.Thread(target=self._gaze_loop, name="gaze", daemon=True).start()
@@ -193,6 +194,19 @@ class Engine:
         vol = int(max(10, min(100, vol)))  # never fully mute by voice: you couldn't hear the answer
         httpx.post(base + "/api/volume/set", json={"volume": vol}, timeout=5).raise_for_status()
         self.emit({"type": "status", "text": f"volume {cur} → {vol}"})
+        _save_state({"volume": vol})  # the daemon resets volume on restart: remember the person's choice
+
+    def restore_volume(self) -> None:
+        base, vol = self._daemon_url(), _load_state().get("volume")
+        if base is None or vol is None:
+            return
+        try:
+            import httpx
+
+            httpx.post(base + "/api/volume/set", json={"volume": int(vol)}, timeout=5).raise_for_status()
+            self.emit({"type": "status", "text": f"volume restored to {vol}"})
+        except Exception as e:  # noqa: BLE001
+            logger.info("could not restore volume: %s", e)
 
     def switch_mode(self, target: str) -> None:
         """Switch voice mode on request; for Taiwanese, first make sure the services are reachable."""
@@ -349,6 +363,28 @@ class Engine:
                 pass
         self.stop()
         self.animator.close()
+
+
+_STATE = __import__("pathlib").Path.home() / ".config" / "reachy_motion" / "state.json"
+
+
+def _load_state() -> dict:
+    import json
+
+    try:
+        return json.loads(_STATE.read_text())
+    except (OSError, ValueError):
+        return {}
+
+
+def _save_state(update: dict) -> None:
+    import json
+
+    try:
+        _STATE.parent.mkdir(parents=True, exist_ok=True)
+        _STATE.write_text(json.dumps({**_load_state(), **update}))
+    except OSError as e:
+        logger.info("could not save state: %s", e)
 
 
 def _robot_has_audio(robot) -> bool:

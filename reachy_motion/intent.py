@@ -56,6 +56,7 @@ it asks the robot to change one of its settings, directly or indirectly, and if 
 - Volume is about the ROBOT'S SPEAKER being too quiet/loud for the person. Questions about whether the robot can
   hear the person (its microphone) are NOT volume requests: 「你聽得到我嗎」「你聽得到我講話嗎」「有聽到嗎」
   「哈囉，聽得到嗎」"can you hear me?" -> do nothing.
+- Asking ABOUT the volume is not a request to change it: 「這樣已經是最大聲了嗎？」「現在音量多少」 -> do nothing.
 - Speaking STYLE is the voice model's job, not volume: 「像講悄悄話一樣講」「小聲跟我說個秘密」"whisper to me",
   「用興奮的語氣講」 -> do nothing.
 - Indirect requests count: 「我聽不太清楚」/"what? I can't hear you" -> set_volume(up); 「有點吵」/"too loud" ->
