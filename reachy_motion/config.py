@@ -12,6 +12,17 @@ DEFAULT_PERSONA = (
     "每次回答一到三句，口語、簡短，像朋友聊天，不要列點。你的身體會跟著你說的話做動作，所以可以大方表達情緒。"
 )
 
+# Appended to every persona / sent as context: the voice model must know it has a body (otherwise it says
+# "I'm just a voice assistant, I can't move" — which is what our ElevenLabs agent did).
+EMBODIMENT = (
+    "【身體與能力】你現在住在一台 Reachy Mini 機器人裡：會動的頭（點頭、歪頭、轉頭）、兩支天線耳朵、會轉的身體，"
+    "還有攝影機眼睛和麥克風。你說話時身體會依照內容自動做出對應的動作，被要求做動作（例如害羞、點頭、跳舞）時，"
+    "直接開心答應並簡短描述你正在做的動作，不要說你沒有身體或不能動。"
+    "系統也能幫你切換說話模式（GPT-Live、ElevenLabs、台語）、調整音量、看著對方；使用者提出時，簡短確認即可，"
+    "系統會自動執行。"
+)
+TAIGI_EMBODIMENT = "你蹛佇一台 Reachy Mini 機器人內底，有會振動的頭佮兩支耳仔，講話的時陣身軀會綴咧振動。"
+
 TAIGI_PERSONA = (
     "你是 Reachy Mini，一隻桌頂的細隻機器人。請用自然的臺灣台語漢字回答，毋通用華語。"
     "每擺一到兩句，總共三十五字以內，親切、有趣。"
@@ -53,7 +64,11 @@ class Settings:
     gpt_live_model: str = "gpt-live-1"
     gpt_live_voice: str = "marin"
     gpt_live_backend_model: str = "gpt-5.4-mini"
-    persona: str = DEFAULT_PERSONA
+    persona: str = DEFAULT_PERSONA + EMBODIMENT
+    embodiment: str = EMBODIMENT
+    gaze: bool = True  # look at the person (daemon-side face tracking)
+    gaze_weight_idle: float = 0.85  # tracking weight while listening / idle
+    gaze_weight_gesture: float = 0.45  # ... while a gesture plays, so the gesture shows through
 
     # ElevenLabs Agents
     elevenlabs_api_key: str = field(default="", repr=False)
@@ -69,7 +84,7 @@ class Settings:
     taigi_tts_url: str = "http://127.0.0.1:8883/v1/audio/speech"
     taigi_tts_model: str = "taigi-hanzi"
     taigi_tts_voice: str = "taigi-demo-reference"
-    taigi_persona: str = TAIGI_PERSONA
+    taigi_persona: str = TAIGI_PERSONA + TAIGI_EMBODIMENT
 
     @classmethod
     def from_env(cls, **overrides) -> Settings:
@@ -81,7 +96,9 @@ class Settings:
                 env = os.environ.get(f.name.upper())
             if env is None:
                 continue
-            if f.type in ("bool", "bool | None"):
+            if f.type == "float":
+                setattr(s, f.name, float(env))
+            elif f.type in ("bool", "bool | None"):
                 setattr(s, f.name, env.strip().lower() in ("1", "true", "yes", "on"))
             else:
                 setattr(s, f.name, env)

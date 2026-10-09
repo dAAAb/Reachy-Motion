@@ -81,6 +81,8 @@ class Director:
         self._buf = ""
         self._buf_pos: float | None = None
         self._heard: str | None = None
+        self._tone_segments: list[tuple[str, str]] = []  # (tag, text after it) from the full reply text
+        self._tone: str | None = None  # latest tone tag seen in streamed text
         self._turn_open = False  # the robot is mid-reply
         self._reaction: Gesture | None = None  # anticipatory gesture planned from what the person is saying
         self._react_for = ""
@@ -126,6 +128,21 @@ class Director:
 
         self._pool.submit(work)
 
+    def set_reply_text(self, text: str) -> None:
+        """The full reply text with its voice tags (e.g. ElevenLabs ``agent_response``): tags become planner hints."""
+        parts = re.split(r"\[([^\]\n]{1,16})\]", text)
+        self._tone_segments = [(parts[i], parts[i + 1]) for i in range(1, len(parts) - 1, 2)]
+        if self._tone_segments:
+            self._tone = self._tone_segments[0][0]
+
+    def _tone_for(self, clause: str) -> str | None:
+        head = WORDY.findall(clause)[:4]
+        key = "".join(head)
+        for tag, seg in self._tone_segments:
+            if key and key in "".join(WORDY.findall(seg)):
+                return tag
+        return self._tone
+
     def listening(self) -> None:
         """The person started talking: perk up and lean in (only if nothing else is playing)."""
         self._play_recipe(Gesture(LISTENING, "listening", "reflex"), force=False)
@@ -134,6 +151,9 @@ class Director:
         if not delta:
             return
         with self._lock:
+            tags = TAG.findall(delta)
+            if tags:
+                self._tone = tags[-1].strip("[]")
             delta = TAG.sub("", delta)
             if self._buf_pos is None and delta.strip():
                 self._buf_pos = self.position() if pos is None else pos
@@ -179,6 +199,7 @@ class Director:
         with self._lock:
             self._flush_buf()
             self._turn_open = False
+            self._tone_segments, self._tone = [], None
 
     def interrupt(self) -> None:
         with self._lock:
@@ -234,12 +255,13 @@ class Director:
     def _submit(self, clause: _Clause) -> None:
         turn = self._turn
         heard = self._heard
-        self.on_event({"type": "clause", "text": clause.text})
+        tone = self._tone_for(clause.text)
+        self.on_event({"type": "clause", "text": clause.text, "tone": tone})
         if self.planner is None:
             return
 
         def work() -> None:
-            g = self.planner.plan(clause.text, heard)
+            g = self.planner.plan(clause.text, heard, tone=tone)
             if turn != self._turn:
                 return
             pos = clause.pos

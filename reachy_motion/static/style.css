@@ -53,4 +53,5 @@ main { display: grid; grid-template-columns: minmax(240px, 340px) 1fr; gap: 16px
 .ev-robot .tag { color: var(--accent); }
 .ev-gesture .tag { color: var(--gesture); }
 .ev-gesture.reflex .tag { color: var(--reflex); }
+.ev-cmd .tag { color: var(--accent); }
 .recipe { display: block; margin-top: 2px; font: 11.5px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); }

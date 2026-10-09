@@ -63,11 +63,27 @@ class Engine:
         self._stop = threading.Event()
         self._lifecycle = threading.Lock()  # serialises start/stop (double-clicks in the UI hit two threads)
         self.running_mode: str | None = None
+        self.voice = None  # the running VoiceMode
+        self.audio: AudioIO | None = None
+        self.gaze_on = settings.gaze
+        self._gaze_w: float | None = None
+        self._gaze_stop = threading.Event()
+        self._switching = threading.Lock()
+        self._recent: collections.deque[tuple[str, str]] = collections.deque(maxlen=6)
+        self.body_agent = None
+        if settings.openai_api_key:
+            from reachy_motion.intent import BodyAgent
+
+            self.body_agent = BodyAgent(settings.planner_model, settings.openai_api_key)
 
     # -- events (for the web UI / logs) ----------------------------------------------------------------------------
     def emit(self, ev: dict) -> None:
         ev = {"id": next(self._ids), "t": round(time.time(), 2), **ev}
         self.events.append(ev)
+        if ev["type"] in ("user", "robot"):
+            self._recent.append(("person" if ev["type"] == "user" else "robot", (ev.get("text") or "")[:200]))
+        if ev["type"] == "user" and ev.get("text", "").strip():
+            threading.Thread(target=self._decide, args=(ev["text"],), name="body-agent", daemon=True).start()
         if ev["type"] in ("gesture", "user", "robot", "status", "timing"):
             logger.info("%s", {k: v for k, v in ev.items() if k not in ("id", "t")})
 
@@ -82,6 +98,125 @@ class Engine:
     def start_animation(self) -> None:
         self.prepare_robot()
         self.animator.start()
+        if self.robot is not None:
+            threading.Thread(target=self._gaze_loop, name="gaze", daemon=True).start()
+
+    # -- gaze: daemon-side face tracking, blended under our gestures ------------------------------------------------
+    def _gaze_loop(self) -> None:
+        """Look at the person: strong while listening/idle, lighter while a gesture plays so it shows through."""
+        while not self._gaze_stop.wait(0.2):
+            if not self.gaze_on:
+                target = 0.0
+            else:
+                target = (self.settings.gaze_weight_idle if self.animator.playing is None
+                          else self.settings.gaze_weight_gesture)
+            cur = self._gaze_w
+            if cur is not None and abs(cur - target) < 0.02:
+                continue
+            nxt = target if cur is None else cur + max(-0.15, min(0.15, target - cur))  # ramp, no snaps
+            try:
+                if nxt <= 0.01:
+                    self.robot.stop_head_tracking()
+                else:
+                    self.robot.start_head_tracking(weight=round(nxt, 2))
+                self._gaze_w = nxt
+            except Exception as e:  # noqa: BLE001 - older daemons have no tracking: give up quietly
+                logger.info("head tracking unavailable: %s", e)
+                return
+
+    # -- spoken commands ----------------------------------------------------------------------------------------
+    def _decide(self, utterance: str) -> None:
+        """Ask the body agent (LLM + tools) what the utterance wants; regex rules only when there is no API key."""
+        from reachy_motion.commands import parse_command
+
+        cmds = []
+        if self.body_agent is not None:
+            state = {"voice_mode": self.running_mode, "looking_at_person": self.gaze_on}
+            try:
+                cmds = self.body_agent.decide(utterance, state, list(self._recent)[:-1])
+            except Exception as e:  # noqa: BLE001 - network hiccup: fall back to the rules for this utterance
+                logger.warning("body agent failed (%s); using keyword rules", e)
+                cmds = [c for c in [parse_command(utterance)] if c]
+        else:
+            cmds = [c for c in [parse_command(utterance)] if c]
+        for cmd in cmds:
+            self.handle_command(cmd)
+
+    def handle_command(self, cmd) -> None:
+        self.emit({"type": "command", "kind": cmd.kind, "arg": cmd.arg, "text": cmd.text})
+        try:
+            if cmd.kind == "volume":
+                self.set_volume(cmd.arg)
+            elif cmd.kind == "gaze":
+                self.gaze_on = bool(cmd.arg)
+                self.emit({"type": "status", "text": "looking at you" if self.gaze_on else "stopped looking"})
+            elif cmd.kind == "mode":
+                self.switch_mode(str(cmd.arg))
+        except Exception as e:  # noqa: BLE001
+            logger.exception("command failed")
+            self.emit({"type": "status", "text": f"command failed: {e}"})
+
+    def _daemon_url(self) -> str | None:
+        return getattr(self.robot, "_daemon_http_url", None) if self.robot is not None else None
+
+    def set_volume(self, arg) -> None:
+        import httpx
+
+        base = self._daemon_url()
+        if base is None:  # local speaker: software gain
+            if self.audio is not None:
+                g = self.audio.speaker.gain
+                g = {"+": g * 1.4, "-": g / 1.4}.get(arg, g) if isinstance(arg, str) else arg / 70.0
+                self.audio.speaker.gain = max(0.1, min(3.0, g))
+                self.emit({"type": "status", "text": f"speaker gain {self.audio.speaker.gain:.2f}"})
+            return
+        cur = httpx.get(base + "/api/volume/current", timeout=5).json().get("volume", 60)
+        vol = {"+": cur + 15, "-": cur - 15}.get(arg, arg) if isinstance(arg, str) else arg
+        vol = int(max(10, min(100, vol)))  # never fully mute by voice: you couldn't hear the answer
+        httpx.post(base + "/api/volume/set", json={"volume": vol}, timeout=5).raise_for_status()
+        self.emit({"type": "status", "text": f"volume {cur} → {vol}"})
+
+    def switch_mode(self, target: str) -> None:
+        """Switch voice mode on request; for Taiwanese, first make sure the services are reachable."""
+        if not self._switching.acquire(blocking=False):
+            return
+        try:
+            current = self.running_mode
+            if target == "default":
+                target = self.settings.mode if self.settings.mode != "taigi" else "gpt-live"
+                if current == target:
+                    target = "gpt-live" if current != "gpt-live" else "elevenlabs"
+            if target == current:
+                return
+            if target == "taigi":
+                from reachy_motion.discovery import probe_taigi
+
+                s = self.settings
+                self.emit({"type": "status", "text": "looking for Taiwanese speech services on the LAN…"})
+                p = probe_taigi(s.taigi_asr_url, s.taigi_llm_url, s.taigi_tts_url, s.taigi_llm_model)
+                if not p.ok:
+                    names = {"asr": "台語語音辨識", "llm": "台語語言模型", "tts": "台語語音合成"}
+                    lost = "、".join(names[m] for m in p.missing)
+                    self.emit({"type": "status", "text": f"Taiwanese unavailable, missing: {', '.join(p.missing)}"})
+                    if self.voice is not None:
+                        self.voice.say(f"現在區網上找不到{lost}的服務，所以暫時沒辦法切換成台語，先維持目前的模式。")
+                    return
+                s.taigi_asr_url, s.taigi_llm_url, s.taigi_tts_url = p.asr_url, p.llm_url, p.tts_url
+                if p.llm_model:
+                    s.taigi_llm_model = p.llm_model
+                self.emit({"type": "status", "text": f"Taiwanese services found ({p.source})"})
+            # let the current voice finish its "OK, switching" sentence before hanging up
+            t0 = time.monotonic()
+            while self.audio is not None and self.audio.speaker.busy(0.3) and time.monotonic() - t0 < 8:
+                time.sleep(0.2)
+            announce = {
+                "taigi": "我轉做台語矣，你欲佮我講啥物？",
+                "gpt-live": "已經切換到 GPT-Live 模式了，用一句話跟使用者打招呼。",
+                "elevenlabs": None,  # the agent greets with its own first message
+            }.get(target)
+            self.start(target, announce=announce)
+        finally:
+            self._switching.release()
 
     def prepare_robot(self) -> None:
         """Wake the robot before streaming poses.
@@ -111,12 +246,12 @@ class Engine:
         except Exception as e:  # noqa: BLE001
             logger.warning("goto_sleep failed: %s", e)
 
-    def start(self, mode: str | None = None) -> None:
+    def start(self, mode: str | None = None, announce: str | None = None) -> None:
         with self._lifecycle:
             self._stop_locked()
-            self._start_locked(mode or self.settings.mode)
+            self._start_locked(mode or self.settings.mode, announce)
 
-    def _start_locked(self, mode: str) -> None:
+    def _start_locked(self, mode: str, announce: str | None = None) -> None:
         cls = mode_class(mode)
         audio_kind = self.settings.audio
         if audio_kind == "auto":
@@ -143,6 +278,8 @@ class Engine:
         if self.planner is None:
             self.emit({"type": "status", "text": "no OPENAI_API_KEY: gesture planner off, reflex gestures only"})
         voice = cls(self.settings, audio, director, self.emit)
+        voice.announce = announce
+        self.voice, self.audio = voice, audio
         self._stop = threading.Event()
         stop = self._stop
 
@@ -184,6 +321,12 @@ class Engine:
         self.running_mode = None
 
     def close(self) -> None:
+        self._gaze_stop.set()
+        if self.robot is not None and self._gaze_w:
+            try:
+                self.robot.stop_head_tracking()
+            except Exception:  # noqa: BLE001
+                pass
         self.stop()
         self.animator.close()
 

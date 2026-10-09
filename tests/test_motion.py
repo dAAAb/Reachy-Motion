@@ -66,7 +66,7 @@ class FakePlanner:
     def __init__(self):
         self.lines = []
 
-    def plan(self, line, heard=None):
+    def plan(self, line, heard=None, **kw):
         self.lines.append(line)
         return Gesture("go .3 p=5 | hold .3", "nod", "planner", line)
 

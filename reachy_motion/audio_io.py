@@ -77,6 +77,7 @@ class Speaker:
         self._pos = 0.0  # stream position (s) of the end of the queue
         self._epoch = 0  # bumped on flush, so stale chunks are dropped
         self._resampler = StreamResampler(sample_rate)
+        self.gain = 1.0  # software volume (local speaker; the robot uses the daemon's volume API)
         self.on_flush: Callable[[], None] | None = None
 
     # -- clock ---------------------------------------------------------------------------------------------------
@@ -109,6 +110,8 @@ class Speaker:
     def write(self, audio: np.ndarray, sample_rate: int) -> float:
         """Queue mono float32 audio; returns its start position on the stream clock."""
         x = self._resampler(audio, sample_rate)
+        if self.gain != 1.0:
+            x = np.clip(x * self.gain, -1.0, 1.0)
         if len(x) == 0:
             return self.position
         with self._lock:

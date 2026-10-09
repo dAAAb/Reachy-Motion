@@ -165,34 +165,18 @@ class TaigiMode(VoiceMode):
         self._cv = threading.Condition()
 
     # -- services ------------------------------------------------------------------------------------------------
-    # The AIRI lab runs these services on two port sets: research launchers (8001 / 8883) and the packaged desktop
-    # app (18001 / 18883). If the configured one is down, try the other.
-    _ALT_PORTS = {":18001/": ":8001/", ":8001/": ":18001/", ":8883/": ":18883/", ":18883/": ":8883/"}
-
-    def _healthy(self, url: str) -> bool:
-        try:
-            self.http.get(url.split("/v1/")[0] + "/health", timeout=3).raise_for_status()
-            return True
-        except httpx.HTTPError:
-            return False
-
     def check_services(self) -> list[str]:
-        s, missing = self.settings, []
-        for name, attr in (("ASR", "taigi_asr_url"), ("TTS", "taigi_tts_url")):
-            url = getattr(s, attr)
-            if self._healthy(url):
-                continue
-            alt = next((url.replace(a, b) for a, b in self._ALT_PORTS.items() if a in url), None)
-            if alt and self._healthy(alt):
-                setattr(s, attr, alt)
-                logger.info("%s: %s is down, using %s", name, url, alt)
-                continue
-            missing.append(f"{name} ({url.split('/v1/')[0]})")
-        try:
-            self.http.get(s.taigi_llm_url.split("/v1/")[0] + "/api/tags", timeout=3).raise_for_status()
-        except httpx.HTTPError:
-            missing.append(f"LLM ({s.taigi_llm_url})")
-        return missing
+        """Find ASR / LLM / TTS: configured URLs, their alternate local ports, then a LAN node over mDNS."""
+        from reachy_motion.discovery import probe_taigi
+
+        s = self.settings
+        p = probe_taigi(s.taigi_asr_url, s.taigi_llm_url, s.taigi_tts_url, s.taigi_llm_model)
+        s.taigi_asr_url, s.taigi_llm_url, s.taigi_tts_url = p.asr_url, p.llm_url, p.tts_url
+        if p.llm_model:
+            s.taigi_llm_model = p.llm_model
+        if p.source != "configured":
+            self.status(f"using Taiwanese services from {p.source}")
+        return p.missing
 
     def transcribe(self, utt: np.ndarray) -> str:
         r = self.http.post(
@@ -229,6 +213,18 @@ class TaigiMode(VoiceMode):
         r.raise_for_status()
         return read_wav(r.content)
 
+    def say(self, text: str) -> None:
+        """Speak a Taiwanese-Han sentence directly through the TTS (no LLM), with a gesture."""
+        super().say(text)
+        fut: Future = Future()
+        self.director.speech_line(text, fut)
+        try:
+            x, sr = self.synthesize(text)
+            fut.set_result(self.audio.speaker.write(x, sr))
+        except Exception as e:  # noqa: BLE001
+            fut.set_exception(e)
+            logger.warning("notice TTS failed: %s", e)
+
     # -- loop ----------------------------------------------------------------------------------------------------
     def run(self, stop: threading.Event) -> None:
         missing = self.check_services()
@@ -253,6 +249,8 @@ class TaigiMode(VoiceMode):
 
         self.audio.mic.start(on_mic)
         self.status("live — 請講台語！(listening)")
+        if self.announce:
+            self.say(self.announce)
         try:
             while not stop.is_set():
                 with self._cv:

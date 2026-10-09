@@ -74,12 +74,12 @@ class GesturePlanner:
         self.model = model
         self.client = OpenAI(api_key=api_key, timeout=timeout_s, max_retries=0)
 
-    def _ask(self, line: str | None, heard: str | None, error: str | None) -> tuple[str, str]:
+    def _ask(self, line: str | None, heard: str | None, error: str | None, tone: str | None = None) -> tuple[str, str]:
         kwargs: dict = dict(
             model=self.model,
             messages=[
                 {"role": "system", "content": prompt.SYSTEM},
-                {"role": "user", "content": prompt.user_message(line, heard, error)},
+                {"role": "user", "content": prompt.user_message(line, heard, error, tone)},
             ],
             response_format={"type": "json_object"},
         )
@@ -105,12 +105,12 @@ class GesturePlanner:
             return None
         return Gesture(recipe, idea, "reaction", heard, (time.perf_counter() - t0) * 1000)
 
-    def plan(self, line: str, heard: str | None = None, retries: int = 1) -> Gesture:
+    def plan(self, line: str, heard: str | None = None, retries: int = 1, tone: str | None = None) -> Gesture:
         t0 = time.perf_counter()
         error = None
         for _ in range(retries + 1):
             try:
-                idea, recipe = self._ask(line, heard, error)
+                idea, recipe = self._ask(line, heard, error, tone)
             except Exception as e:  # network / JSON problems -> fall back below
                 logger.warning("planner call failed: %s", e)
                 break

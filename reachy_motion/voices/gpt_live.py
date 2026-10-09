@@ -34,8 +34,19 @@ class GptLiveMode(VoiceMode):
     output_rate = RATE
     late_grace_s = 1.8  # transcript arrives *after* its audio; one reply usually keeps one mood
 
+    _loop: asyncio.AbstractEventLoop | None = None
+    _ws = None
+
     def run(self, stop: threading.Event) -> None:
         asyncio.run(self._run(stop))
+
+    def say(self, text: str) -> None:
+        """Spoken commentary (the Live model paraphrases it aloud)."""
+        super().say(text)
+        if self._loop is None or self._ws is None:
+            return
+        ev = {"type": "session.commentary.append", "delegation_id": None, "content": text}
+        asyncio.run_coroutine_threadsafe(self._ws.send(json.dumps(ev)), self._loop)
 
     def _session(self) -> dict:
         s = self.settings
@@ -72,6 +83,7 @@ class GptLiveMode(VoiceMode):
 
         headers = {"Authorization": f"Bearer {s.openai_api_key}"}
         async with websockets.connect(URL, additional_headers=headers, max_size=None) as ws:
+            self._loop, self._ws = loop, ws
 
             async def send(ev: dict) -> None:
                 await ws.send(json.dumps(ev))
@@ -120,6 +132,9 @@ class GptLiveMode(VoiceMode):
                         self.status("live — say hi!")
                         self.audio.mic.start(on_mic)
                         tasks += [asyncio.create_task(pump_mic()), asyncio.create_task(watch())]
+                        if self.announce:
+                            await send({"type": "session.commentary.append", "delegation_id": None,
+                                        "content": self.announce})
                     elif t == "session.output_audio.delta":
                         if stream_base is None:  # calibrate: session time 0 = speaker position minus elapsed
                             stream_base = self.audio.speaker.position - (time.monotonic() - t_started)

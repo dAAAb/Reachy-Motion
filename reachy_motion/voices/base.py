@@ -33,6 +33,13 @@ class VoiceMode(abc.ABC):
     @abc.abstractmethod
     def run(self, stop: threading.Event) -> None: ...
 
+    #: spoken once the session is live (e.g. "switched to Taiwanese"); set by the engine before run()
+    announce: str | None = None
+
+    def say(self, text: str) -> None:
+        """Make the robot tell the person something (a system notice) in this mode's voice. Best effort."""
+        self.status(f"(notice) {text}")
+
     # helpers ---------------------------------------------------------------------------------------------------------
     def barge_in(self) -> None:
         """The person talked over the robot: drop queued audio and pending gestures."""

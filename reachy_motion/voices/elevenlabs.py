@@ -24,6 +24,20 @@ SIGNED_URL = "https://api.elevenlabs.io/v1/convai/conversation/get-signed-url"
 TURN_GAP_S = 0.8
 
 
+def _is_barge_in(heard: str, reply: str) -> bool:
+    """Real speech from the person, not the robot's own voice leaking into its mic?"""
+    import re as _re
+
+    h = "".join(_re.findall(r"[\u3400-\u9fffA-Za-z0-9]", heard)).lower()
+    if h in ("停", "等", "喂", "欸", "stop", "wait", "hey"):
+        return True
+    if len(h) < 2:
+        return False
+    r = "".join(_re.findall(r"[\u3400-\u9fffA-Za-z0-9]", reply)).lower()
+    # echo of the reply shows up as a run of its own characters
+    return not any(h[i : i + 3] in r for i in range(max(1, len(h) - 2))) if len(h) >= 3 else h not in r
+
+
 def _rate(fmt: str | None, default: int = 16000) -> int:
     """'pcm_24000' -> 24000. ulaw_8000 is not supported (we only decode PCM)."""
     if fmt and fmt.startswith("pcm_"):
@@ -35,8 +49,19 @@ class ElevenLabsMode(VoiceMode):
     name = "elevenlabs"
     output_rate = 16000  # the local speaker resamples whatever the agent sends
 
+    _loop: asyncio.AbstractEventLoop | None = None
+    _ws = None
+
     def run(self, stop: threading.Event) -> None:
         asyncio.run(self._run(stop))
+
+    def say(self, text: str) -> None:
+        """Ask the agent to relay a system notice (it answers this 'user message' in its own voice)."""
+        super().say(text)
+        if self._loop is None or self._ws is None:
+            return
+        msg = {"type": "user_message", "text": f"[系統通知，請用一句話自然地轉告使用者，不要提到系統通知] {text}"}
+        asyncio.run_coroutine_threadsafe(self._ws.send(json.dumps(msg)), self._loop)
 
     async def _url(self) -> str:
         s = self.settings
@@ -74,6 +99,8 @@ class ElevenLabsMode(VoiceMode):
         last_interrupt = -1
         streaming_text = False  # agent_chat_response_part enabled -> plan from it (it arrives before the audio)
         last_text = 0.0
+        reply_text = ""  # the reply being spoken, to tell the robot's own echo from a real barge-in
+        dropping = False  # after a local barge-in: discard the rest of the old reply's audio until a new reply
 
         mic_rs = StreamResampler(16000)  # replaced once the agent's input format is known
 
@@ -90,6 +117,7 @@ class ElevenLabsMode(VoiceMode):
             return
 
         async with websockets.connect(url, max_size=None, ping_interval=None) as ws:
+            self._loop, self._ws = loop, ws
             await ws.send(json.dumps(self._init_message()))
             self.status("connecting…")
             started = False
@@ -124,13 +152,16 @@ class ElevenLabsMode(VoiceMode):
                         out_rate = _rate(ev.get("agent_output_audio_format"))
                         mic_rs = StreamResampler(in_rate)
                         self.status(f"live — agent audio {out_rate} Hz, mic {in_rate} Hz. Say hi!")
+                        # tell the agent it has a body (contextual_update: no reply, no override permission needed)
+                        if s.embodiment:
+                            await ws.send(json.dumps({"type": "contextual_update", "text": s.embodiment}))
                         if not started:
                             started = True
                             self.audio.mic.start(on_mic)
                             tasks.append(asyncio.create_task(pump_mic()))
                     elif t == "audio":
                         ev = m["audio_event"]
-                        if int(ev.get("event_id", 0)) <= last_interrupt:
+                        if int(ev.get("event_id", 0)) <= last_interrupt or dropping:
                             continue
                         pos = self.audio.speaker.write(pcm16_to_float(base64.b64decode(ev["audio_base_64"])), out_rate)
                         al = ev.get("alignment") or {}
@@ -148,14 +179,26 @@ class ElevenLabsMode(VoiceMode):
                             self.director.end_of_turn()
                     elif t == "agent_response":
                         # arrives with the FIRST audio of the turn, not the last: log it, don't close the turn here
-                        self.on_event({"type": "robot", "text": m["agent_response_event"]["agent_response"]})
+                        txt = m["agent_response_event"]["agent_response"]
+                        reply_text, dropping = txt, False  # a new reply: play again
+                        self.director.set_reply_text(txt)  # its [tone] tags become gesture hints
+                        self.on_event({"type": "robot", "text": txt})
                     elif t == "agent_response_correction":
                         ev = m["agent_response_correction_event"]
                         self.on_event({"type": "robot", "text": ev["corrected_agent_response"] + " ⟂"})
                     elif t == "user_transcript":
                         self.director.user_text(m["user_transcription_event"]["user_transcript"])
                     elif t == "tentative_user_transcript":
-                        self.director.listening()
+                        heard = (m.get("tentative_user_transcription_event") or {}).get("user_transcript", "")
+                        # The server streams audio much faster than real time and considers the agent done once
+                        # it has *sent* the reply, so talking over the robot is not an "interruption" for it.
+                        # Barge in locally when the person is heard while we are still playing.
+                        if self.audio.speaker.busy() and _is_barge_in(heard, reply_text):
+                            dropping = True
+                            self.barge_in()
+                            self.on_event({"type": "status", "text": f"barge-in: {heard[:30]}"})
+                        else:
+                            self.director.listening()
                     elif t == "interruption":
                         last_interrupt = int(m["interruption_event"]["event_id"])
                         self.barge_in()

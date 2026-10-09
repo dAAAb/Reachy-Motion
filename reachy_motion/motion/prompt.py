@@ -72,6 +72,10 @@ what the person just said. Write ONE motion recipe of body language that fits th
   between 1.2 and 6 seconds. Onset -> main expression -> settle back toward a relaxed pose.
 - Commit: ears, pitch and height agree. Big ear changes are fast (0.2-0.5 s). Keep E 1-3 while talking.
 - The head also sways with the voice automatically, so do not add constant tiny wiggles; express intent.
+- If the person EXPLICITLY asked for a motion (e.g. 「做一個害羞把臉埋起來的動作」, "nod", "shake your head",
+  "dance", 「點頭」「搖頭」), perform exactly that motion, clearly and fully (up to 6 s), whatever the robot says.
+- A tone tag (e.g. 害羞 / 開心 / 溫柔 / laughs / whispers) is the voice actor's direction for the line: let it set
+  the emotion of the motion.
 
 # Examples (emotion prompts)
 """ + "\n".join(f"{p}\n  {r}" for p, r in EXAMPLES.items()) + """
@@ -82,7 +86,7 @@ what the person just said. Write ONE motion recipe of body language that fits th
 Reply with JSON only: {"idea": "<one short English sentence: the body language>", "recipe": "<recipe>"}"""
 
 
-def user_message(line: str | None, heard: str | None = None, error: str | None = None) -> str:
+def user_message(line: str | None, heard: str | None = None, error: str | None = None, tone: str | None = None) -> str:
     if line is None:  # anticipation: the reply is not known yet, react to what the person said
         msg = (f"Person said: {heard}\nThe robot is about to answer. Write its immediate body-language REACTION "
                "to what it just heard (1.5-3 s), as it starts to speak.")
@@ -90,6 +94,8 @@ def user_message(line: str | None, heard: str | None = None, error: str | None =
         msg = f"Robot says: {line}"
     if heard and line is not None:
         msg = f"Person said: {heard}\n" + msg
+    if tone and line is not None:
+        msg += f"\nTone tag: {tone}"
     if error:
         msg += f"\n\nYour previous recipe was invalid ({error}); write a corrected one."
     return msg

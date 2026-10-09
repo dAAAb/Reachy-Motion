@@ -23,16 +23,20 @@ dependencies = [
     # openai>=3.12 onto the robot's shared apps venv, where Pollen's conversation app pins openai 2.x.
     "openai>=1.50",
     "websockets>=13",
+    "zeroconf>=0.130",                 # find the Mac's Taiwanese speech node on the LAN (mDNS)
 ]
 keywords = ["reachy-mini-app", "motion-generation", "voice", "gpt-live", "elevenlabs", "taiwanese"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.6"]
+# reachy-motion-node (run on the Mac that hosts the Taiwanese models)
+node = ["aiohttp>=3.9"]
 # scripts/record_session.py: render a session in MuJoCo to MP4
 record = ["reachy-mini[mujoco]>=1.10", "imageio-ffmpeg>=0.5", "pillow>=10"]
 
 [project.scripts]
 reachy-motion = "reachy_motion.main:cli"
+reachy-motion-node = "reachy_motion.taigi_node:main"
 
 [project.entry-points."reachy_mini_apps"]
 reachy_motion = "reachy_motion.main:ReachyMotion"
