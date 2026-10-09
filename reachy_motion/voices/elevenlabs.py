@@ -17,6 +17,7 @@ import httpx
 import numpy as np
 
 from reachy_motion.audio_io import StreamResampler, float_to_pcm16, pcm16_to_float
+from reachy_motion.config import now_context
 from reachy_motion.voices.base import VoiceMode
 
 WS_URL = "wss://api.elevenlabs.io/v1/convai/conversation?agent_id={agent_id}"
@@ -156,7 +157,8 @@ class ElevenLabsMode(VoiceMode):
                         self.status(f"live — agent audio {out_rate} Hz, mic {in_rate} Hz. Say hi!")
                         # tell the agent it has a body (contextual_update: no reply, no override permission needed)
                         if s.embodiment:
-                            await ws.send(json.dumps({"type": "contextual_update", "text": s.embodiment}))
+                            await ws.send(json.dumps({"type": "contextual_update",
+                                                      "text": s.embodiment + now_context()}))
                         if not started:
                             started = True
                             self.audio.mic.start(on_mic)

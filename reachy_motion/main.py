@@ -75,7 +75,10 @@ class ReachyMotion(ReachyMiniApp):
         try:
             stop_event.wait()
         finally:
-            engine.close()
+            # The daemon waits for us after SIGINT; never hang it (it then stays in "stopping" until restarted).
+            closer = threading.Thread(target=engine.close, name="shutdown", daemon=True)
+            closer.start()
+            closer.join(timeout=6)
 
 
 def cli() -> None:

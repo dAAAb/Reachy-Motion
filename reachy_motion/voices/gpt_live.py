@@ -22,6 +22,7 @@ import time
 import numpy as np
 
 from reachy_motion.audio_io import StreamResampler, float_to_pcm16, pcm16_to_float
+from reachy_motion.config import now_context
 from reachy_motion.voices.base import VoiceMode
 
 RATE = 24000
@@ -52,7 +53,7 @@ class GptLiveMode(VoiceMode):
         s = self.settings
         return {
             "model": s.gpt_live_model,
-            "instructions": s.persona,
+            "instructions": s.persona + now_context(),
             "audio": {"format": {"type": "audio/pcm", "rate": RATE}, "output": {"voice": s.gpt_live_voice}},
             "delegation": {
                 "type": "responses",

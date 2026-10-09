@@ -32,6 +32,18 @@ TAIGI_PERSONA = (
 )
 
 
+def now_context(lang: str = "zh") -> str:
+    """Current local date/time for the voice models (they don't know 'today'); the robot's clock is NTP-synced."""
+    import datetime as _dt
+
+    tz = _dt.timezone(_dt.timedelta(hours=8))  # Taipei; the robot's TZ is UTC by default
+    now = _dt.datetime.now(tz)
+    wk = "一二三四五六日"[now.weekday()]
+    if lang == "taigi":
+        return f"【這馬的時間】{now.year} 年 {now.month} 月 {now.day} 號，禮拜{wk}，{now.hour} 點 {now.minute} 分（台灣時間）。"
+    return f"【現在時間】{now.year} 年 {now.month} 月 {now.day} 日 星期{wk} {now:%H:%M}（台灣時間）。"
+
+
 def _load_dotenv() -> None:
     try:
         from dotenv import load_dotenv

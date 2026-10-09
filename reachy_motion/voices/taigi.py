@@ -27,6 +27,7 @@ import httpx
 import numpy as np
 
 from reachy_motion.audio_io import StreamResampler, float_to_pcm16, pcm16_to_float
+from reachy_motion.config import now_context
 from reachy_motion.voices.base import VoiceMode
 
 logger = logging.getLogger(__name__)
@@ -189,7 +190,8 @@ class TaigiMode(VoiceMode):
 
     def llm_stream(self, user: str):
         s = self.settings
-        msgs = [{"role": "system", "content": s.taigi_persona}, *self.history[-8:], {"role": "user", "content": user}]
+        msgs = [{"role": "system", "content": s.taigi_persona + now_context("taigi")}, *self.history[-8:],
+                {"role": "user", "content": user}]
         body = {
             "model": s.taigi_llm_model, "messages": msgs, "stream": True, "temperature": 0.2, "max_tokens": 160,
             "reasoning_effort": "none",

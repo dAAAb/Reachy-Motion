@@ -334,9 +334,9 @@ class Engine:
         """Stop the running session and wait for it to release the mic/speaker (a new one must not overlap it)."""
         if self._session is not None and self._session.is_alive():
             self._stop.set()
-            self._session.join(timeout=20)
+            self._session.join(timeout=12)
             if self._session.is_alive():
-                logger.error("voice session did not stop within 20 s; starting anyway")
+                logger.error("voice session did not stop within 12 s; continuing anyway")
         self._session = None
         self.running_mode = None
 
