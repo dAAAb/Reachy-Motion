@@ -28,7 +28,8 @@ class WebLookup:
             r = self.client.responses.create(
                 model=self.model,
                 tools=[{"type": "web_search"}],
-                instructions=("用網路搜尋回答，繁體中文，兩三句話，給具體數字與日期，不要附網址。"
+                instructions=("用網路搜尋回答。這段話會被機器人唸出來：繁體中文、口語、一兩句，只講最重要的那個答案"
+                              "（例如股價只講現在價格和漲跌），不要時區換算、不要網址、不要列點。"
                               + (f"使用者所在地：{self.location}。" if self.location else "")
                               + now_context()),
                 input=question,
