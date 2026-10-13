@@ -4,21 +4,153 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Reachy-Motion</title>
+  <meta name="description" content="Talk with Reachy Mini — it moves with what it says, in real time.">
+  <link rel="icon" href="public/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- Links open in a new tab: this page runs inside the Hugging Face Space iframe, and GitHub refuses to be framed. -->
+  <header class="hero">
+    <div class="hero-text">
+      <p class="eyebrow">A Reachy Mini app</p>
+      <h1>Reachy&#8209;Motion</h1>
+      <p class="lead">Talk with Reachy Mini — <span class="hl">it moves with what it says</span>, in real time.</p>
+      <p class="tagline">Nods when it agrees, shrugs when it's unsure, perks up its antennas when it's excited. 邊聊邊動！</p>
+      <div class="cta">
+        <a class="btn primary" href="#install">Install it</a>
+        <a class="btn" href="https://github.com/dAAAb/Reachy-Motion" target="_blank" rel="noopener">Source on GitHub ↗</a>
+      </div>
+    </div>
+
+    <figure class="stage" aria-hidden="true">
+      <div class="bubble"><span class="say"></span></div>
+      <svg class="bot" viewBox="-110 -130 220 230">
+        <ellipse class="shadow" cx="0" cy="92" rx="70" ry="9"/>
+        <g class="body">
+          <ellipse class="base" cx="0" cy="66" rx="62" ry="22"/>
+          <rect class="torso" x="-42" y="18" width="84" height="50" rx="20"/>
+          <g class="head">
+            <g class="ant ant-l"><line x1="-22" y1="-40" x2="-30" y2="-96"/><circle cx="-30" cy="-98" r="6"/></g>
+            <g class="ant ant-r"><line x1="22" y1="-40" x2="30" y2="-96"/><circle cx="30" cy="-98" r="6"/></g>
+            <rect class="face" x="-56" y="-46" width="112" height="74" rx="32"/>
+            <g class="eyes">
+              <circle cx="-21" cy="-10" r="12"/><circle cx="21" cy="-10" r="12"/>
+              <circle class="glint" cx="-17" cy="-14" r="3.5"/><circle class="glint" cx="25" cy="-14" r="3.5"/>
+            </g>
+            <ellipse class="cheek" cx="-40" cy="10" rx="8" ry="4.5"/><ellipse class="cheek" cx="40" cy="10" rx="8" ry="4.5"/>
+          </g>
+        </g>
+        <g class="waves"><path d="M-92 -20 Q-102 0 -92 20"/><path d="M92 -28 Q102 -8 92 12"/></g>
+      </svg>
+    </figure>
+  </header>
+
   <main>
-    <p class="eyebrow">Reachy Mini app</p>
-    <h1>Reachy-Motion</h1>
-    <p class="lead">Talk with Reachy Mini — it moves with what it says, in real time.</p>
-    <ul>
-      <li><b>Three voices</b> — OpenAI GPT-Live-1, your ElevenLabs agent, or Taiwanese (台語) on a local Mac.</li>
-      <li><b>Speech-driven motion</b> — every clause becomes a gesture that lands with the audio.</li>
-      <li><b>An embodied agent</b> — switch mode or volume by voice, “look at me”, “what do you see?”, live web answers.</li>
-    </ul>
-    <p>Install it from the Reachy Mini dashboard, then add your API keys on the app's settings page.
-       Keys stay on your device.</p>
-    <p><a href="https://github.com/dAAAb/Reachy-Motion">Source &amp; docs on GitHub →</a></p>
+    <section>
+      <h2>How it works</h2>
+      <ol class="flow">
+        <li><span class="num">1</span><b>You talk</b><span>Just speak to the robot — it listens through its own microphone.</span></li>
+        <li><span class="num">2</span><b>It answers out loud</b><span>A live voice model replies, fast enough for real back-and-forth.</span></li>
+        <li><span class="num">3</span><b>Every clause becomes a gesture</b><span>An AI choreographer turns each phrase into head, antenna and body motion, timed to land with the audio.</span></li>
+      </ol>
+      <p class="note">On top of that it breathes, sways gently while it speaks, and reacts the moment you start talking — no frozen robot while the AI thinks.</p>
+    </section>
+
+    <section>
+      <h2>Pick a voice</h2>
+      <div class="cards">
+        <article class="card">
+          <div class="tag">OpenAI</div>
+          <h3>GPT‑Live‑1</h3>
+          <p>Full-duplex voice: interrupt it any time, it answers in a blink. Needs an OpenAI API key.</p>
+        </article>
+        <article class="card">
+          <div class="tag">ElevenLabs</div>
+          <h3>Your agent</h3>
+          <p>Use any ElevenLabs Agent — including one with your own cloned voice. Gestures are the most precisely timed here.</p>
+        </article>
+        <article class="card">
+          <div class="tag">Local · 台語</div>
+          <h3>Taiwanese</h3>
+          <p>Speech recognition, chat and voice all run on your own Mac (Apple Silicon). Optional, for the adventurous.</p>
+        </article>
+      </div>
+      <p class="note">Switch any time from the app page — or just ask the robot: “switch to ElevenLabs”.</p>
+    </section>
+
+    <section>
+      <h2>Things to try saying</h2>
+      <ul class="chips">
+        <li>“Look at me!”</li>
+        <li>“What do you see?”</li>
+        <li>“Turn it down a little.”</li>
+        <li>“What's the weather today?”</li>
+        <li>“Any news this morning?”</li>
+        <li>“Stop staring at me 😅”</li>
+        <li>“Tell me a story — act it out!”</li>
+        <li>“Switch to Taiwanese.”</li>
+      </ul>
+      <p class="note">A small “body agent” understands these by meaning, not keywords: it moves the camera to follow your face,
+        takes a picture to describe what's in front of it, adjusts the volume and looks things up on the web.</p>
+    </section>
+
+    <section id="install">
+      <h2>Install in three steps</h2>
+      <ol class="steps">
+        <li><b>Find it in your dashboard.</b> Open Reachy Mini Control (or the robot's dashboard), go to <i>Discover apps</i>, search for <code>reachy_motion</code> and click Install.</li>
+        <li><b>Add your keys.</b> Start the app, open its settings page and fill in <i>Keys &amp; voices</i>: an OpenAI API key, and for ElevenLabs mode your agent ID.</li>
+        <li><b>Say hi.</b> Pick a voice and start talking. Reachy will take it from there.</li>
+      </ol>
+      <p class="note">Works on Reachy Mini Wireless (runs on the robot itself), Reachy Mini Lite, and the simulator.</p>
+    </section>
+
+    <section class="privacy">
+      <div class="lock" aria-hidden="true">🔒</div>
+      <div>
+        <h2>Your keys stay yours</h2>
+        <p>This Space contains only code. Your API keys are typed into the app's settings page and saved on <b>your</b> robot or
+          computer (<code>~/.config/reachy_motion/.env</code>, readable only by you). The page never shows them back, and they
+          are only ever sent to the provider you chose.</p>
+      </div>
+    </section>
+
+    <section class="credits">
+      <h2>Thanks</h2>
+      <p>Motion recipes and animation runtime by <a href="https://github.com/pham-tuan-binh" target="_blank" rel="noopener">Binh Pham</a>
+        (<a href="https://github.com/pham-tuan-binh/reachy-animation" target="_blank" rel="noopener">reachy-animation</a>, Apache-2.0).
+        Robot, SDK and daemon by <a href="https://www.pollen-robotics.com/" target="_blank" rel="noopener">Pollen Robotics</a>.
+        Reachy-Motion itself is open source under Apache-2.0.</p>
+    </section>
   </main>
+
+  <footer>
+    <a href="https://github.com/dAAAb/Reachy-Motion" target="_blank" rel="noopener">GitHub</a>
+    <span>·</span>
+    <a href="https://github.com/dAAAb/Reachy-Motion/tree/main/wiki" target="_blank" rel="noopener">Docs &amp; wiki</a>
+    <span>·</span>
+    <a href="https://github.com/dAAAb/Reachy-Motion/issues" target="_blank" rel="noopener">Report an issue</a>
+    <p>Made with 🧡 for Reachy Mini</p>
+  </footer>
+
+  <script>
+    // The speech bubble cycles a few lines; each one comes with its own little gesture.
+    const lines = [["Hi there! 👋", "wave"], ["Hmm, let me think…", "think"], ["Yes! Exactly!", "nod"],
+                   ["Oh, really?!", "perk"], ["I'm not so sure…", "shrug"], ["你好～", "wave"]];
+    const stage = document.querySelector(".stage"), say = document.querySelector(".say"),
+          bubble = document.querySelector(".bubble");
+    const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let i = 0;
+    function next() {
+      const [text, move] = lines[i++ % lines.length];
+      say.textContent = text;
+      bubble.style.animation = "none";
+      stage.dataset.move = "";
+      void stage.offsetWidth;  // restart the CSS animation
+      bubble.style.animation = "";
+      stage.dataset.move = move;
+    }
+    next();
+    if (!still) setInterval(next, 2600);
+  </script>
 </body>
 </html>
