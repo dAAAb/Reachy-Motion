@@ -2,7 +2,7 @@
 
 Only the package and its metadata go in — no tests, wiki, recordings, scripts or env files.
 
-    python scripts/build_space.py && hf upload dAAAb/Reachy-Motion dist/space . --repo-type space
+    python scripts/build_space.py && hf upload dAAAb/reachy_motion dist/space . --repo-type space
 """
 
 from __future__ import annotations
@@ -30,7 +30,10 @@ def build() -> Path:
         else:
             shutil.copy2(src, OUT / name)
     for f in SPACE_FILES.iterdir():
-        shutil.copy2(f, OUT / f.name)
+        if f.is_dir():
+            shutil.copytree(f, OUT / f.name, ignore=shutil.ignore_patterns(".DS_Store"))
+        elif f.name != ".DS_Store":
+            shutil.copy2(f, OUT / f.name)
     return OUT
 
 

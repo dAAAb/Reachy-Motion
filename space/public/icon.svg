@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Reachy-Motion">
+  <rect width="128" height="128" rx="28" fill="#1d1d20"/>
+  <!-- antennas, tilted: the robot is moving -->
+  <g stroke="#ededf0" stroke-width="5" stroke-linecap="round" fill="none">
+    <path d="M47 44 L38 18"/>
+    <path d="M81 44 L95 20"/>
+  </g>
+  <!-- head, slightly tilted -->
+  <g transform="rotate(-8 64 66)">
+    <rect x="26" y="42" width="76" height="52" rx="22" fill="#fbfaf7"/>
+    <circle cx="50" cy="66" r="10" fill="#1d1d20"/>
+    <circle cx="78" cy="66" r="10" fill="#1d1d20"/>
+    <rect x="58" y="64" width="12" height="4" rx="2" fill="#1d1d20"/>
+  </g>
+  <!-- motion arcs -->
+  <g stroke="#ff6b2b" stroke-width="5" stroke-linecap="round" fill="none">
+    <path d="M14 58 Q8 70 14 82"/>
+    <path d="M114 50 Q120 62 114 74"/>
+  </g>
+  <!-- speech bubble dots -->
+  <g fill="#ff6b2b"><circle cx="54" cy="110" r="4"/><circle cx="64" cy="110" r="4"/><circle cx="74" cy="110" r="4"/></g>
+</svg>
