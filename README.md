@@ -73,6 +73,11 @@ reachy-motion --mode gpt-live --no-robot
 # MuJoCo simulator:   reachy-mini-daemon --sim   then   reachy-motion --sim
 ```
 
+**One-click install:** open *Discover apps* in Reachy Mini Control (or the robot dashboard) and search
+**reachy_motion** — it is published as the Hugging Face Space
+[dAAAb/reachy_motion](https://huggingface.co/spaces/dAAAb/reachy_motion). Then enter your keys on the app's settings
+page under **Keys & voices** (stored only on your device).
+
 **On the robot** (Reachy Mini Wireless) it is a standard `ReachyMiniApp` (entry point `reachy_motion`) and runs
 entirely on the robot with its own mic and speaker — no computer needed for GPT-Live / ElevenLabs:
 

@@ -22,6 +22,7 @@ An Obsidian-compatible linked wiki for this repo: research, decisions and measur
 - [[Motion Recipes]] — the `go / hold / osc` language and how we render it without the flow generator
 - [[Body Agent]] — 🆕 v0.2: an LLM with tools for spoken control (mode, volume, gaze), camera vision and web lookups
 - [[Running on the Robot]] — 🆕 install on Reachy Mini Wireless, config, shared apps venv, daemon gotchas
+- [[Publishing to the App Store]] — 🆕 HF Space `dAAAb/reachy_motion`, Discover apps, naming + no-git gotchas
 
 ### Voice modes
 - [[GPT-Live-1]] — OpenAI full-duplex voice model: protocol facts + measured timing behaviour
