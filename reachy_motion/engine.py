@@ -56,9 +56,6 @@ class Engine:
         self.animator.on_pose(on_pose)
         self.events: collections.deque[dict] = collections.deque(maxlen=300)
         self._ids = itertools.count(1)
-        self.planner = GesturePlanner(settings.planner_model, settings.openai_api_key or None) if (
-            settings.openai_api_key
-        ) else None
         self._session: threading.Thread | None = None
         self._stop = threading.Event()
         self._lifecycle = threading.Lock()  # serialises start/stop (double-clicks in the UI hit two threads)
@@ -70,21 +67,37 @@ class Engine:
         self._gaze_stop = threading.Event()
         self._switching = threading.Lock()
         self._recent: collections.deque[tuple[str, str]] = collections.deque(maxlen=6)
-        self.body_agent = None
-        if settings.openai_api_key:
-            from reachy_motion.intent import BodyAgent
+        self._build_ai()
 
-            self.body_agent = BodyAgent(settings.planner_model, settings.openai_api_key)
-        self.web = None
-        if settings.openai_api_key:
+    def _build_ai(self) -> None:
+        """(Re)create the cloud components from the current settings (after keys change on the settings page)."""
+        s, robot = self.settings, self.robot
+        key = s.openai_api_key or None
+        self.planner = GesturePlanner(s.planner_model, key) if key else None
+        self.body_agent = self.web = self.eyes = None
+        if key:
+            from reachy_motion.intent import BodyAgent
             from reachy_motion.web import WebLookup
 
-            self.web = WebLookup(settings.vision_model, settings.openai_api_key, location=settings.location)
-        self.eyes = None
-        if settings.openai_api_key and robot is not None and getattr(robot, "media", None) is not None:
-            from reachy_motion.vision import Eyes
+            self.body_agent = BodyAgent(s.planner_model, key)
+            self.web = WebLookup(s.vision_model, key, location=s.location)
+            if robot is not None and getattr(robot, "media", None) is not None:
+                from reachy_motion.vision import Eyes
 
-            self.eyes = Eyes(robot, settings.vision_model, settings.openai_api_key)
+                self.eyes = Eyes(robot, s.vision_model, key)
+
+    def reconfigure(self, updates: dict) -> dict:
+        """Save settings-page edits to the device's config file, reload settings, restart the current mode."""
+        from reachy_motion import userconfig
+
+        userconfig.write(updates)
+        audio = self.settings.audio  # keep how this process was launched (CLI flags / app defaults)
+        self.settings = Settings.from_env(audio=audio)
+        self._build_ai()
+        mode = self.running_mode or self.settings.mode
+        self.emit({"type": "status", "text": "settings saved; restarting " + mode})
+        threading.Thread(target=self.start, args=(mode,), name="restart", daemon=True).start()
+        return userconfig.public_view()
 
     # -- events (for the web UI / logs) ----------------------------------------------------------------------------
     def emit(self, ev: dict) -> None:

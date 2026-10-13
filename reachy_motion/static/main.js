@@ -80,3 +80,54 @@ async function poll() {
   setTimeout(poll, 80);
 }
 poll();
+
+// ---- keys & voices (secrets are write-only: the server only says whether they are set)
+async function loadConfig() {
+  const c = await api("/api/config");
+  const box = $("#configFields");
+  box.textContent = "";
+  for (const [key, f] of Object.entries(c.fields)) {
+    const wrap = document.createElement("div");
+    wrap.className = "field";
+    const label = document.createElement("label");
+    label.textContent = f.label;
+    label.htmlFor = "cfg-" + key;
+    const input = document.createElement("input");
+    input.id = "cfg-" + key;
+    input.name = key;
+    input.type = f.secret ? "password" : "text";
+    input.autocomplete = "off";
+    input.spellcheck = false;
+    if (f.secret) input.placeholder = f.set ? "•••••••• (set — type to replace, or 'clear')" : "not set";
+    else input.value = f.value || "";
+    wrap.append(label, input);
+    if (f.secret) {
+      const st = document.createElement("span");
+      st.className = "state" + (f.set ? " set" : "");
+      st.textContent = f.set ? "✓ set" : "not set";
+      wrap.append(st);
+    }
+    box.append(wrap);
+  }
+  $("#configPath").textContent = "Saved to " + c.path + " (mode 600). Never uploaded.";
+  $("#needKeys").hidden = c.fields.OPENAI_API_KEY.set;
+  if (!c.fields.OPENAI_API_KEY.set) $("#configBox").open = true;
+}
+
+$("#configForm").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const body = {};
+  for (const input of ev.target.querySelectorAll("input")) {
+    const v = input.value.trim();
+    if (input.type === "password") {
+      if (v === "clear") body[input.name] = null;
+      else if (v) body[input.name] = v;  // empty = keep the stored secret
+    } else body[input.name] = v || null;
+  }
+  $("#configMsg").textContent = "saving…";
+  const r = await fetch("/api/config", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body) });
+  $("#configMsg").textContent = r.ok ? "saved — restarting the voice" : "error: " + (await r.text());
+  if (r.ok) loadConfig();
+});
+loadConfig();

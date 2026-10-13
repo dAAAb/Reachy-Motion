@@ -51,6 +51,21 @@ def add_routes(app, engine: Engine) -> None:
         engine.stop()
         return {"ok": True}
 
+    @app.get("/api/config")
+    def get_config() -> dict:
+        from reachy_motion import userconfig
+
+        return userconfig.public_view()  # secrets: only whether they are set, never their value
+
+    @app.post("/api/config")
+    def set_config(body: dict = Body(default={})) -> dict:  # noqa: B008
+        from fastapi import HTTPException
+
+        try:
+            return engine.reconfigure({k: (None if v is None else str(v)) for k, v in body.items()})
+        except ValueError as e:
+            raise HTTPException(400, str(e)) from None
+
 
 class ReachyMotion(ReachyMiniApp):
     """Dashboard-managed app (runs on the robot; uses the robot's mic and speaker)."""

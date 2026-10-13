@@ -19,6 +19,7 @@
     <button id="stop" class="stop">Stop</button>
   </section>
   <p id="status" class="status">idle</p>
+  <p id="needKeys" class="banner" hidden>Add your OpenAI API key (and ElevenLabs agent ID) under <b>Keys &amp; voices</b> below to start talking.</p>
 
   <main>
     <figure class="preview">
@@ -39,6 +40,15 @@
       <ol id="events"></ol>
     </section>
   </main>
+
+  <details class="config" id="configBox">
+    <summary>Keys &amp; voices <span class="hint">stored only on this device</span></summary>
+    <form id="configForm" autocomplete="off">
+      <div id="configFields"></div>
+      <p class="hint" id="configPath"></p>
+      <div class="actions"><button type="submit">Save</button><span id="configMsg" class="hint"></span></div>
+    </form>
+  </details>
   <script src="/static/main.js"></script>
 </body>
 </html>

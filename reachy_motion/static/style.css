@@ -55,3 +55,19 @@ main { display: grid; grid-template-columns: minmax(240px, 340px) 1fr; gap: 16px
 .ev-gesture.reflex .tag { color: var(--reflex); }
 .ev-cmd .tag { color: var(--accent); }
 .recipe { display: block; margin-top: 2px; font: 11.5px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); }
+
+.banner { margin: -6px 2px 14px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--accent);
+  background: var(--panel); font-size: 14px; }
+.config { margin-top: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+.config summary { cursor: pointer; font-weight: 600; }
+.config .hint { color: var(--muted); font-size: 12.5px; font-weight: 400; margin-left: 6px; }
+.config form { margin-top: 10px; display: grid; gap: 10px; }
+.field { display: grid; gap: 4px; }
+.field label { font-size: 13px; color: var(--muted); }
+.field input { font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--bg); color: var(--ink); width: 100%; }
+.field .state { font-size: 12px; }
+.field .state.set { color: var(--gesture); }
+.config .actions { display: flex; align-items: center; gap: 10px; }
+.config button { font: inherit; padding: 8px 16px; border-radius: 10px; border: 1px solid var(--accent);
+  background: var(--accent); color: var(--accent-ink, #fff); cursor: pointer; }

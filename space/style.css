@@ -1,0 +1,10 @@
+:root { --bg: #f6f4ef; --ink: #1d1d1f; --muted: #6b6b70; --accent: #d9480f; }
+@media (prefers-color-scheme: dark) { :root { --bg: #141416; --ink: #ededf0; --muted: #9a9aa2; --accent: #ff6b2b; } }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 16px/1.6 -apple-system, "PingFang TC", "Noto Sans TC", system-ui, sans-serif; }
+main { max-width: 680px; margin: 0 auto; padding: 48px 16px; }
+.eyebrow { color: var(--accent); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; font-size: 13px; margin: 0; }
+h1 { font-size: 40px; margin: 4px 0 8px; letter-spacing: -0.02em; }
+.lead { font-size: 19px; color: var(--muted); margin-top: 0; }
+ul { padding-left: 20px; } li { margin: 6px 0; }
+a { color: var(--accent); }
