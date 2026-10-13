@@ -4,15 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "reachy_motion"
-version = "0.3.0"
+version = "0.3.1"
 description = "Live voice chat with Reachy Mini — the robot generates expressive motion from what is being said, in real time."
 readme = "README.md"
 license = { text = "Apache-2.0" }
 requires-python = ">=3.11"
 dependencies = [
     "reachy-mini>=1.10",
-    # Animator: idle breathing + crossfaded gestures + speech-driven head sway (Apache-2.0, not on PyPI)
-    "reachy-animation @ git+https://github.com/pham-tuan-binh/reachy-animation@90e25b5773353213cffe18d915d0703ba04c083b",
+    # reachy-animation (Apache-2.0) is vendored in reachy_motion/vendor/: no git dependency, so the app store
+    # (uv pip install of the Space) works on machines without git
     "numpy>=1.26",
     "scipy>=1.11",
     "soxr>=0.5",                       # streaming resampler (no clicks between chunks)
@@ -35,7 +35,8 @@ asr = ["mlx==0.32.3", "mlx-audio==0.4.3", "av>=14", "fastapi>=0.110", "uvicorn>=
 # reachy-motion-node (run on the Mac that hosts the Taiwanese models)
 node = ["aiohttp>=3.9"]
 # scripts/record_session.py: render a session in MuJoCo to MP4
-record = ["reachy-mini[mujoco]>=1.10", "imageio-ffmpeg>=0.5", "pillow>=10"]
+record = ["reachy-mini[mujoco]>=1.10", "imageio-ffmpeg>=0.5", "pillow>=10",
+          "reachy-animation @ git+https://github.com/pham-tuan-binh/reachy-animation@90e25b5773353213cffe18d915d0703ba04c083b"]
 
 [project.scripts]
 reachy-motion = "reachy_motion.main:cli"
@@ -57,7 +58,7 @@ where = ["."]
 include = ["reachy_motion*"]
 
 [tool.setuptools.package-data]
-reachy_motion = ["static/**/*", "prompts/*.txt"]
+reachy_motion = ["static/**/*", "prompts/*.txt", "vendor/reachy_animation/LICENSE", "vendor/reachy_animation/*.md"]
 
 [tool.ruff]
 line-length = 119

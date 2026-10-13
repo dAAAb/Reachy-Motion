@@ -304,7 +304,7 @@ class Director:
             self._wake.clear()
 
     def _play_recipe(self, g: Gesture, force: bool = True) -> None:
-        from reachy_animation import Clip
+        from reachy_motion.vendor.reachy_animation import Clip
 
         try:
             poses = recipe_to_poses(g.recipe)

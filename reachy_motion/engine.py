@@ -37,7 +37,7 @@ def mode_class(name: str):
 class Engine:
     def __init__(self, settings: Settings, robot=None, audio_factory=None) -> None:
         """``audio_factory(mode_cls, on_chunk) -> AudioIO`` overrides mic/speaker creation (tests, recordings)."""
-        from reachy_animation import Animator, to_target
+        from reachy_motion.vendor.reachy_animation import Animator, to_target
 
         self.settings = settings
         self.robot = robot

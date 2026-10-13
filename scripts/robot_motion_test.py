@@ -14,7 +14,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from reachy_mini import ReachyMini  # noqa: E402
-from reachy_animation import Clip, to_target  # noqa: E402
+from reachy_motion.vendor.reachy_animation import Clip, to_target  # noqa: E402
 
 from reachy_motion.config import Settings  # noqa: E402
 from reachy_motion.engine import Engine  # noqa: E402
