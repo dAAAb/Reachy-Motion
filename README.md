@@ -65,7 +65,9 @@ more and is ~3× smoother than the noise rendering. The robot's CM4 is too slow 
 Apple Silicon, so on a Mac in the same network run
 
 ```bash
-pip install -e ".[local]" && reachy-motion-server      # serves both, advertised over mDNS; the robot finds it
+# in its own virtual environment — not your system / conda base Python (it pulls numpy 2, transformers 5, mlx)
+cd Reachy-Motion && uv venv && uv pip install -e ".[local]"
+.venv/bin/reachy-motion-server      # serves both, advertised over mDNS; the robot finds it
 ```
 
 Without a server the robot still uses the generator for its pre-rendered reflexes. Weights (Apache-2.0) download
