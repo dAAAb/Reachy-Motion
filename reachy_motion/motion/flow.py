@@ -354,6 +354,11 @@ class FlowRenderer:
     def ready(self) -> bool:
         return self._net is not None
 
+    def unload(self) -> None:
+        with self._loading, self._lock:
+            self._net = self._stats = self._reach = None
+            self.error = None
+
     def render(self, recipe: str, seed: int | None = None) -> np.ndarray:
         """Recipe -> (T, 9) reachable poses. Raises ``RecipeError`` for a bad recipe, ``RuntimeError`` if not loaded."""
         if self._net is None:

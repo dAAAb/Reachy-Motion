@@ -70,7 +70,10 @@ cd Reachy-Motion && uv venv && uv pip install -e ".[local]"
 .venv/bin/reachy-motion-server      # serves both, advertised over mDNS; the robot finds it
 ```
 
-Without a server the robot still uses the generator for its pre-rendered reflexes. Weights (Apache-2.0) download
+The app page shows the server (**Mac motion server**: not found / off / loading / on, with RAM) and can **Start** /
+**Stop** its models. To have it waiting at every login in standby (nothing loaded until you press Start), run once
+`.venv/bin/reachy-motion-server --install-login-item` (a per-user LaunchAgent; `--uninstall-login-item` removes it).
+Without a server the robot keeps the `recipe` rendering (it never renders on its own CPU). Weights (Apache-2.0) download
 from the Hugging Face Hub on first use: ~87 MB generator, ~1.7 GB planner. See [Motion Engines](wiki/architecture/Motion%20Engines.md).
 
 Details: [Architecture](wiki/architecture/Architecture.md) · [Playback Clock](wiki/architecture/Playback%20Clock.md) ·

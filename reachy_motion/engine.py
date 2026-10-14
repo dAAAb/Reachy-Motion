@@ -91,11 +91,38 @@ class Engine:
         from reachy_motion.motion import backends
 
         s = self.settings
+        if getattr(self, "server_watch", None) is None or self.server_watch.configured != s.motion_server:
+            self.server_watch = backends.ServerWatch(s.motion_server, self._on_server_change)
+        if s.motion_engine != "recipe":
+            self.server_watch.ensure_running()
+        st = self.server_watch.status
+        url = st.get("url") if st.get("state") == "on" else None
         self.planner, self.renderer, self.motion_desc = backends.build(
-            s.motion_engine, self.cloud_planner, s.motion_server, s.local_planner)
+            s.motion_engine, self.cloud_planner, s.motion_server, s.local_planner, url=url)
         if getattr(self, "director", None) is not None:  # live switch: the running session picks it up
             self.director.planner, self.director.renderer = self.planner, self.renderer
         self.emit({"type": "status", "text": "motion: " + self.motion_desc})
+
+    def _on_server_change(self, status: dict) -> None:
+        """The Mac motion server appeared / was started / stopped: move the flow / local engine onto it or off it."""
+        if self.settings.motion_engine == "recipe":
+            return
+        using = getattr(getattr(self.renderer, "backend", None), "base", None)
+        wanted = status.get("url") if status.get("state") == "on" else None
+        if (using or None) != (wanted.rstrip("/") if wanted else None):
+            self._build_motion()
+
+    def motion_server_status(self) -> dict:
+        self.server_watch.ensure_running()  # the page asks: start looking even in recipe mode
+        return dict(self.server_watch.status)
+
+    def motion_server_control(self, action: str) -> dict:
+        if action not in ("start", "stop"):
+            raise ValueError("action must be start or stop")
+        try:
+            return self.server_watch.control(action)
+        except RuntimeError as e:
+            raise ValueError(str(e)) from None
 
     def motion_status(self) -> str:
         note = getattr(self.renderer, "note", "") if self.renderer is not None else ""

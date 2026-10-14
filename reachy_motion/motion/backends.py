@@ -97,6 +97,17 @@ class LocalPlanner:
     def ready(self) -> bool:
         return self._model is not None
 
+    def unload(self) -> None:
+        with self._loading, self._lock:
+            self._model = self._tok = None
+            self.error = None
+        try:
+            import mlx.core as mx
+
+            mx.clear_cache()
+        except Exception:  # noqa: BLE001 - older mlx: memory is returned lazily anyway
+            pass
+
     def _warm(self) -> None:
         """One throw-away generation: the first one compiles MLX kernels (~1 s slower than the rest)."""
         from mlx_lm import generate
@@ -208,6 +219,8 @@ class RemoteMotion:
         self.base = base.rstrip("/")
         self.http = httpx.Client(timeout=httpx.Timeout(4.0, connect=1.0))
         self.info = self.http.get(self.base + "/health", timeout=3).raise_for_status().json()
+        if self.info.get("state", "on") != "on":
+            raise RuntimeError(f"motion server models are {self.info.get('state')}")
         self.name = f"server:{self.info.get('planner') or 'generator'}@{self.base.split('//')[-1]}"
         self._down_until = 0.0
 
@@ -314,8 +327,75 @@ class Renderer:
         threading.Thread(target=run, name="reflex-warm", daemon=True).start()
 
 
-def build(engine: str, cloud_planner, server: str = "auto", local_size: str = "0.8b"):
-    """-> (planner, renderer | None, description). Falls back gracefully when a part is unavailable."""
+class ServerWatch:
+    """Background: find a ``reachy-motion-server`` on the LAN and track its state, for the app page and for
+    switching the motion engine onto it (or off it) when it is started / stopped."""
+
+    def __init__(self, configured: str = "auto", on_change=None) -> None:
+        self.configured = configured  # auto | http://host:port | off
+        self.on_change = on_change or (lambda status: None)
+        self.status: dict = {"found": False, "state": None, "url": None, "checked": 0.0}
+        self._wake = threading.Event()
+        self._thread: threading.Thread | None = None
+
+    def ensure_running(self) -> None:
+        if self.configured != "off" and (self._thread is None or not self._thread.is_alive()):
+            self._thread = threading.Thread(target=self._run, name="motion-server-watch", daemon=True)
+            self._thread.start()
+
+    def poke(self) -> None:
+        self._wake.set()
+
+    def _check(self) -> dict:
+        import httpx
+
+        url = self.configured if self.configured.startswith("http") else self.status.get("url")
+        if url:
+            try:
+                h = httpx.get(url.rstrip("/") + "/health", timeout=1.5).json()
+                return {"found": True, "url": url, **h, "state": h.get("state", "on")}
+            except Exception:  # noqa: BLE001 - gone: forget it and browse again
+                if self.configured.startswith("http"):
+                    return {"found": False, "url": url, "state": None}
+        url = discover(timeout_s=1.5)
+        if not url:
+            return {"found": False, "url": None, "state": None}
+        try:
+            h = httpx.get(url + "/health", timeout=1.5).json()
+            return {"found": True, "url": url, **h, "state": h.get("state", "on")}
+        except Exception:  # noqa: BLE001
+            return {"found": False, "url": None, "state": None}
+
+    def _run(self) -> None:
+        while True:
+            new = self._check()
+            new["checked"] = time.time()
+            old, self.status = self.status, new
+            if (old.get("state"), old.get("url")) != (new.get("state"), new.get("url")):
+                try:
+                    self.on_change(new)
+                except Exception:
+                    logger.exception("motion server change handler failed")
+            self._wake.wait(3.0 if new.get("state") in ("on", "loading") else 8.0)
+            self._wake.clear()
+
+    def control(self, action: str) -> dict:
+        import httpx
+
+        url = self.status.get("url")
+        if not url:
+            raise RuntimeError("no reachy-motion-server found on the network")
+        r = httpx.post(url.rstrip("/") + "/control", json={"action": action}, timeout=5)
+        if r.status_code >= 400:
+            raise RuntimeError(r.json().get("detail", r.text))
+        self.poke()
+        return r.json()
+
+
+def build(engine: str, cloud_planner, server: str = "auto", local_size: str = "0.8b", url: str | None = None):
+    """-> (planner, renderer | None, description). Falls back gracefully when a part is unavailable.
+
+    ``url``: a server already found by ``ServerWatch`` (skips the mDNS browse)."""
     from reachy_motion.motion.flow import FlowRenderer
 
     if engine not in ENGINES:
@@ -332,12 +412,16 @@ def build(engine: str, cloud_planner, server: str = "auto", local_size: str = "0
     explicit = server.startswith("http")
     need = not fast_machine() or (engine == "local" and not can_run_mlx())
     if server != "off" and (explicit or need):
-        url = server if server.startswith("http") else discover()
+        url = server if explicit else (url or discover())
         if url:
             try:
                 remote = RemoteMotion(url)
             except Exception as e:  # noqa: BLE001
-                logger.warning("motion server %s unreachable: %s", url, e)
+                logger.warning("motion server %s not usable: %s", url, e)
+    if remote is None and not fast_machine():
+        # the robot's CM4 rendering in-process would hog the CPU the camera and audio need: wait for the server
+        return cloud_planner, None, (f"{engine} — waiting for the Mac motion server (start it below); "
+                                     "using recipe rendering meanwhile")
     gen = Renderer(remote, remote.name) if remote is not None else Renderer(FlowRenderer(), "generator:in-process")
     from reachy_motion.motion.director import LISTENING
     from reachy_motion.motion.planner import REFLEXES

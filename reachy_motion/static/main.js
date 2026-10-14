@@ -138,3 +138,36 @@ $("#configForm").addEventListener("submit", async (ev) => {
   if (r.ok) loadConfig();
 });
 loadConfig();
+
+// ---- Mac motion server (reachy-motion-server): find it, show its state, start / stop its models
+const SRV_HINT_MISSING = "Not found on this network. On your Mac run ~/Reachy-Motion/.venv/bin/reachy-motion-server " +
+  "(or once: reachy-motion-server --install-login-item, so it waits in standby at every login).";
+async function pollServer() {
+  let s = null;
+  try { s = await api("/api/motion-server"); } catch (_) { /* app restarting */ }
+  const dot = $("#srvDot"), st = $("#srvState"), hint = $("#srvHint"), btn = $("#srvBtn");
+  if (s) {
+    const state = s.found ? s.state : "missing";
+    dot.className = "dot " + state;
+    const where = s.found ? ` · ${s.host || s.url}` : "";
+    const what = s.planner ? ` · planner ${s.planner}` : "";
+    const mem = s.rss_mb ? ` · ${(s.rss_mb / 1000).toFixed(1)} GB` : "";
+    st.textContent = { missing: "— not found", off: `— off${where}`, loading: `— loading…${where}`,
+      on: `— on${where}${what}${mem}`, error: `— error${where}` }[state] || `— ${state}`;
+    hint.textContent = state === "missing" ? SRV_HINT_MISSING : (state === "error" ? (s.detail || "") : "");
+    btn.hidden = !s.found || state === "loading";
+    btn.textContent = state === "on" ? "Stop" : "Start";
+    btn.dataset.action = state === "on" ? "stop" : "start";
+  }
+  setTimeout(pollServer, 3000);
+}
+$("#srvBtn").addEventListener("click", async (ev) => {
+  const b = ev.currentTarget;
+  b.disabled = true;
+  try {
+    const r = await fetch("/api/motion-server", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: b.dataset.action }) });
+    if (!r.ok) $("#srvHint").textContent = (await r.json()).detail || "failed";
+  } finally { b.disabled = false; }
+});
+pollServer();

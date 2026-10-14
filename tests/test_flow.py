@@ -146,3 +146,44 @@ def test_remote_backs_off_after_failure(monkeypatch):
         rm.render(NOD)
     assert FakeClient.calls == 1
     assert rm.plan("我們走吧。").source == "fallback"  # planner falls back to a reflex / talking gesture at once
+
+
+def test_robot_without_server_does_not_render_in_process(monkeypatch):
+    monkeypatch.setattr(backends, "fast_machine", lambda: False)
+    monkeypatch.setattr(backends, "discover", lambda timeout_s=2.5: None)
+    planner, renderer, desc = backends.build("flow", "cloud")
+    assert planner == "cloud" and renderer is None and "waiting for the Mac motion server" in desc
+
+
+def test_remote_motion_refuses_a_server_in_standby(monkeypatch):
+    import httpx
+
+    class FakeClient:
+        def __init__(self, *a, **k):
+            pass
+
+        def get(self, url, timeout=None):
+            return httpx.Response(200, json={"state": "off"}, request=httpx.Request("GET", url))
+
+    monkeypatch.setattr(httpx, "Client", FakeClient)
+    with pytest.raises(RuntimeError):
+        backends.RemoteMotion("http://mac:18110")
+
+
+def test_server_models_switch_on_and_off(monkeypatch):
+    from reachy_motion import motion_server
+
+    monkeypatch.setattr(motion_server, "can_run_mlx", lambda: False)
+    m = motion_server.Models(None)
+    monkeypatch.setattr(m.gen, "load", lambda: True)
+    monkeypatch.setattr(type(m.gen), "ready", property(lambda self: True))
+    monkeypatch.setattr(m.gen, "render", lambda *a, **k: np.zeros((10, 9)))
+    assert m.health()["state"] == "off"
+    m.start()
+    for _ in range(50):
+        if m.state == "on":
+            break
+        time.sleep(0.02)
+    assert m.health()["state"] == "on"
+    m.stop()
+    assert m.health()["state"] == "off"

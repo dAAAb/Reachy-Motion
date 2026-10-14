@@ -50,6 +50,19 @@ The recipe language is the same in all three ([[Binh Pham Expressive Harness]]),
 - Planned gestures are rendered in the planning thread, before scheduling ([[Gesture Director]]); any render failure
   (loading, server down) falls back to noise at play time — never blocks speech.
 
+## Server control from the app page (v0.4.2)
+- `reachy-motion-server` has a **state**: `off` (no weights, ~0.2–0.4 GB RSS) → `loading` → `on` (~2.3 GB with the
+  0.8B planner; loads in ~1.5 s once cached) | `error`. `POST /control {action: start|stop}`; `--standby` starts off.
+- The robot app runs a `ServerWatch` thread (mDNS browse when not found, `/health` every 3–8 s) → page panel
+  **Mac motion server** with Start / Stop (`GET/POST /api/motion-server`); when the server turns on/off the engine is
+  rebuilt onto / off it automatically.
+- The page can't start a process on the Mac by itself, so something must be running there: either start it by hand,
+  or `--install-login-item` (LaunchAgent `com.reachy-motion.server`, KeepAlive, standby, logs in
+  `~/Library/Logs/reachy-motion-server.log`).
+- On the robot, `flow` / `local` **without** a server now fall back to the noise rendering instead of rendering on the
+  CM4 (pre-rendering 30 reflex variants in-process would hog the CPU the camera and audio need).
+- Client: 1 s connect timeout, 30 s backoff after a failure; a server in `off` is not used.
+
 ## Quality `(measured)`
 Same 19 recipes (from three recorded sessions + "sneezing") rendered both ways: peak head speed 84 vs 88 °/s, ear
 travel 65° vs **75°**, mean |jerk| 0.34 vs **0.11** — the generator moves the ears more and is ~3× smoother than

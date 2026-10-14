@@ -61,6 +61,19 @@ def add_routes(app, engine: Engine) -> None:
         except ValueError as e:
             raise HTTPException(400, str(e)) from None
 
+    @app.get("/api/motion-server")
+    def motion_server() -> dict:
+        return engine.motion_server_status()
+
+    @app.post("/api/motion-server")
+    def motion_server_control(body: dict = Body(default={})) -> dict:  # noqa: B008
+        from fastapi import HTTPException
+
+        try:
+            return engine.motion_server_control(str(body.get("action", "")))
+        except ValueError as e:
+            raise HTTPException(400, str(e)) from None
+
     @app.get("/api/config")
     def get_config() -> dict:
         from reachy_motion import userconfig

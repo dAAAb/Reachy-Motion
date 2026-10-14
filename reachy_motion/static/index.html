@@ -25,6 +25,14 @@
     <button data-engine="local"><b>All local</b><span>Binh's planner + flow model on your Mac</span></button>
   </section>
   <p id="motionDesc" class="status motion-desc"></p>
+  <section class="server" aria-label="Mac motion server">
+    <span class="dot" id="srvDot"></span>
+    <div class="srv-text">
+      <b>Mac motion server</b> <span id="srvState">looking…</span>
+      <span class="hint" id="srvHint"></span>
+    </div>
+    <button id="srvBtn" hidden></button>
+  </section>
   <p id="status" class="status">idle</p>
   <p id="needKeys" class="banner" hidden>Add your OpenAI API key (and ElevenLabs agent ID) under <b>Keys &amp; voices</b> below to start talking.</p>
 
