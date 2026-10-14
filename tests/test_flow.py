@@ -120,3 +120,29 @@ def test_real_generator_renders_reachable_motion(monkeypatch):
     A = r.render(NOD, seed=1)
     assert A.shape[1] == 9 and np.isfinite(A).all()
     assert np.abs(A[:, 4]).max() < 0.6 and np.abs(A).max() < math.pi
+
+
+def test_remote_backs_off_after_failure(monkeypatch):
+    import httpx
+
+    class FakeClient:
+        calls = 0
+
+        def __init__(self, *a, **k):
+            pass
+
+        def get(self, url, timeout=None):
+            return httpx.Response(200, json={"planner": "0.8b"}, request=httpx.Request("GET", url))
+
+        def post(self, url, json=None):
+            FakeClient.calls += 1
+            raise httpx.ConnectError("down")
+
+    monkeypatch.setattr(httpx, "Client", FakeClient)
+    rm = backends.RemoteMotion("http://mac:18110")
+    with pytest.raises(httpx.ConnectError):
+        rm.render(NOD)
+    with pytest.raises(RuntimeError):  # skipped without a network call
+        rm.render(NOD)
+    assert FakeClient.calls == 1
+    assert rm.plan("我們走吧。").source == "fallback"  # planner falls back to a reflex / talking gesture at once

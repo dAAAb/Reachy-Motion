@@ -195,29 +195,45 @@ def discover(timeout_s: float = 2.5) -> str | None:
 
 
 class RemoteMotion:
-    """Client for ``reachy-motion-server``: ``render`` (recipe -> poses) and, if it has a planner, plan / react."""
+    """Client for ``reachy-motion-server``: ``render`` (recipe -> poses) and, if it has a planner, plan / react.
 
-    def __init__(self, base: str, timeout_s: float = 6.0) -> None:
+    Short timeouts, and after a failure the server is skipped for ``BACKOFF_S`` (callers fall back at once), so a
+    Mac that goes to sleep or leaves the network never makes the robot wait on every gesture."""
+
+    BACKOFF_S = 30.0
+
+    def __init__(self, base: str) -> None:
         import httpx
 
         self.base = base.rstrip("/")
-        self.http = httpx.Client(timeout=timeout_s)
+        self.http = httpx.Client(timeout=httpx.Timeout(4.0, connect=1.0))
         self.info = self.http.get(self.base + "/health", timeout=3).raise_for_status().json()
         self.name = f"server:{self.info.get('planner') or 'generator'}@{self.base.split('//')[-1]}"
+        self._down_until = 0.0
+
+    def _post(self, path: str, body: dict) -> dict:
+        if time.monotonic() < self._down_until:
+            raise RuntimeError("motion server unreachable (backing off)")
+        try:
+            r = self.http.post(self.base + path, json=body)
+            if r.status_code >= 500:
+                r.raise_for_status()
+        except Exception:
+            self._down_until = time.monotonic() + self.BACKOFF_S
+            logger.warning("motion server %s unreachable; using local fallbacks for %.0f s", self.base, self.BACKOFF_S)
+            raise
+        r.raise_for_status()
+        return r.json()
 
     @property
     def has_planner(self) -> bool:
         return bool(self.info.get("planner"))
 
     def render(self, recipe: str, seed: int | None = None) -> np.ndarray:
-        r = self.http.post(self.base + "/render", json={"recipe": recipe, "seed": seed})
-        r.raise_for_status()
-        return np.asarray(r.json()["poses"], dtype=np.float64)
+        return np.asarray(self._post("/render", {"recipe": recipe, "seed": seed})["poses"], dtype=np.float64)
 
     def _plan(self, prompt: str, retries: int) -> tuple[str, str]:
-        r = self.http.post(self.base + "/plan", json={"prompt": prompt, "retries": retries})
-        r.raise_for_status()
-        d = r.json()
+        d = self._post("/plan", {"prompt": prompt, "retries": retries})
         return d["idea"], d["recipe"]
 
     def plan(self, line: str, heard: str | None = None, retries: int = 2, tone: str | None = None) -> Gesture:
