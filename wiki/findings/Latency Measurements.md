@@ -30,3 +30,13 @@ Network round trip dominates; see [[Backlog]] for a local MLX planner.
 Reflex gestures: 0 ms (regex on the first text of a clause).
 
 Related: [[Playback Clock]], [[Gesture Director]].
+
+## Motion engines (2026-10-14, M4 Max, ElevenLabs session, same Chinese question) `(measured)`
+| engine | planned gesture latency (plan + render) |
+|---|---|
+| `recipe` | 1138–1483 ms (cloud `gpt-5.4-nano`) |
+| `flow` | 1335–1799 ms (cloud + numpy generator ~0.2 s) |
+| `local` | **699–867 ms** (0.8B on MLX ~0.4 s + generator) |
+
+Generator alone: ~0.17 s for a 4 s gesture in-process; 85–350 ms through `reachy-motion-server` on localhost.
+See [[Motion Engines]].

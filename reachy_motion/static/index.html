@@ -18,6 +18,13 @@
     <button data-mode="taigi"><b>台語</b><span>Local · ASR → SARC → TTS</span></button>
     <button id="stop" class="stop">Stop</button>
   </section>
+  <section class="motion" aria-label="Motion engine">
+    <span class="motion-label">Motion</span>
+    <button data-engine="recipe"><b>Recipe</b><span>cloud planner · simple detail</span></button>
+    <button data-engine="flow"><b>Flow model</b><span>cloud planner · learned motion</span></button>
+    <button data-engine="local"><b>All local</b><span>Binh's planner + flow model on your Mac</span></button>
+  </section>
+  <p id="motionDesc" class="status motion-desc"></p>
   <p id="status" class="status">idle</p>
   <p id="needKeys" class="banner" hidden>Add your OpenAI API key (and ElevenLabs agent ID) under <b>Keys &amp; voices</b> below to start talking.</p>
 

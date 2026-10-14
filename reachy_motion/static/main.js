@@ -13,6 +13,8 @@ async function api(path, body) {
 document.querySelectorAll(".modes button[data-mode]").forEach((b) =>
   b.addEventListener("click", () => api("/api/start", { mode: b.dataset.mode })));
 $("#stop").addEventListener("click", () => api("/api/stop", {}));
+document.querySelectorAll(".motion button[data-engine]").forEach((b) =>
+  b.addEventListener("click", () => api("/api/motion", { engine: b.dataset.engine })));
 
 function addEvent(cls, tag, text, extra) {
   const li = document.createElement("li");
@@ -45,7 +47,7 @@ function onEvent(e) {
     case "robot": if (!robotLine) addEvent("ev-robot", "reachy", e.text); robotLine = null; break;
     case "gesture":
       addEvent("ev-gesture " + e.source, e.source === "planner" ? "gesture" : e.source,
-        `${e.idea}${e.latency_ms ? ` · ${e.latency_ms} ms` : ""}`, e.recipe);
+        `${e.idea}${e.latency_ms ? ` · ${e.latency_ms} ms` : ""}${e.render === "generator" ? " · flow" : ""}`, e.recipe);
       break;
     case "timing": addEvent("ev-timing", "timing", `ASR ${e.asr_s}s · first audio ${e.first_audio_s}s`); break;
     case "interrupt": addEvent("ev-int", "barge-in", "— interrupted"); robotLine = null; break;
@@ -74,6 +76,11 @@ async function poll() {
     const s = await api(`/api/state?after=${after}`);
     document.querySelectorAll(".modes button[data-mode]").forEach((b) =>
       b.classList.toggle("on", b.dataset.mode === s.mode));
+    if (s.motion) {
+      document.querySelectorAll(".motion button[data-engine]").forEach((b) =>
+        b.classList.toggle("on", b.dataset.engine === s.motion.engine));
+      $("#motionDesc").textContent = s.motion.desc || "";
+    }
     for (const e of s.events) { onEvent(e); after = e.id; }
     drawPose(s.pose);
   } catch (_) { /* server restarting */ }

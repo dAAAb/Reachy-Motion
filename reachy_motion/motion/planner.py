@@ -29,6 +29,7 @@ class Gesture:
     line: str = ""
     latency_ms: float = 0.0
     meta: dict = field(default_factory=dict)
+    poses: object = None  # (T, 9) array pre-rendered by the generator, else rendered from the recipe at play time
 
 
 # Ordered: the first matching pattern wins. Patterns are matched against the lowercased clause.

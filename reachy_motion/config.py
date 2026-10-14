@@ -83,6 +83,11 @@ class Settings:
 
     # gesture planner
     planner_model: str = "gpt-5.4-nano"
+    # motion engine (see motion/backends.py): recipe = cloud planner + noise detail (v0.3) | flow = cloud planner +
+    # Binh Pham's flow-matching generator | local = his fine-tuned planner (MLX) + the generator, no cloud call
+    motion_engine: str = "recipe"
+    motion_server: str = "auto"  # auto (mDNS _reachy-motion._tcp when needed) | http://host:port | off
+    local_planner: str = "0.8b"  # 0.8b (~1.7 GB, fastest) | 4b (~9 GB, better)
     vision_model: str = "gpt-5.4-mini"  # describes camera frames ("what do you see?")
     location: str = ""  # where the robot is, for web answers (weather...), e.g. "台灣台北"; empty = not assumed
     reflexes: bool = True

@@ -22,6 +22,9 @@ FIELDS: dict[str, tuple[bool, str]] = {
     "ELEVENLABS_VOICE_ID": (False, "ElevenLabs voice ID (optional override)"),
     "REACHY_MOTION_MODE": (False, "Start in mode: gpt-live | elevenlabs | taigi"),
     "REACHY_MOTION_GPT_LIVE_VOICE": (False, "GPT-Live voice (e.g. marin)"),
+    "REACHY_MOTION_MOTION_ENGINE": (False, "Motion engine: recipe | flow | local"),
+    "REACHY_MOTION_MOTION_SERVER": (False, "Motion server: auto | http://host:18110 | off"),
+    "REACHY_MOTION_LOCAL_PLANNER": (False, "Local planner model: 0.8b | 4b"),
     "REACHY_MOTION_LOCATION": (False, "Location for weather/news (optional)"),
     "REACHY_MOTION_TIMEZONE": (False, "Time zone, IANA name (e.g. Asia/Taipei)"),
 }

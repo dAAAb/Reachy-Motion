@@ -50,6 +50,27 @@ voice mode ──audio──▶ Speaker (playback clock) ──chunks──▶ A
   still talking*.
 - Each gesture is placed on the **speaker's playback clock**, so it starts with the words it belongs to.
 
+## Motion engines
+
+Pick one on the app page (**Motion**), or set `REACHY_MOTION_MOTION_ENGINE`:
+
+| engine | who writes the recipe | who turns it into motion | per clause |
+|---|---|---|---|
+| `recipe` (default) | cloud LLM | eased keyframes + band-limited noise | ~1.2 s |
+| `flow` | cloud LLM | Binh Pham's **flow-matching generator** (learned overshoot, flicks, micro-motion) | ~1.4 s |
+| `local` | Binh Pham's **fine-tuned planner** (0.8B, MLX) | the flow-matching generator | **~0.75 s**, no cloud call |
+
+The generator runs in numpy (no torch) at ~0.2 s per gesture on an M-series Mac; on the same recipes it moves the ears
+more and is ~3× smoother than the noise rendering. The robot's CM4 is too slow for live use, and the planner needs
+Apple Silicon, so on a Mac in the same network run
+
+```bash
+pip install -e ".[local]" && reachy-motion-server      # serves both, advertised over mDNS; the robot finds it
+```
+
+Without a server the robot still uses the generator for its pre-rendered reflexes. Weights (Apache-2.0) download
+from the Hugging Face Hub on first use: ~87 MB generator, ~1.7 GB planner. See [Motion Engines](wiki/architecture/Motion%20Engines.md).
+
 Details: [Architecture](wiki/architecture/Architecture.md) · [Playback Clock](wiki/architecture/Playback%20Clock.md) ·
 [Gesture Director](wiki/architecture/Gesture%20Director.md) · [Latency measurements](wiki/findings/Latency%20Measurements.md)
 
@@ -116,12 +137,16 @@ uv pip install -e ".[dev]" && pytest -q
 ## Status & roadmap
 
 v0.2 — accepted on a physical Reachy Mini Wireless (2026-10-09): all three modes, spoken control, vision and web.
-Next: delegate real-world tasks to an external agent (OpenClaw), and a local Apple-Silicon port of Binh Pham's
-fine-tuned planner + flow-matching generator. See the [Backlog](wiki/Backlog.md).
+v0.4 — three motion engines, including Binh Pham's flow-matching generator and fine-tuned planner on a Mac
+(verified in simulation; robot acceptance pending). Next: delegate real-world tasks to an external agent (OpenClaw).
+See the [Backlog](wiki/Backlog.md).
 
 ## Credits & license
 
-Apache-2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE). The recipe language and planner examples are adapted from
-[reachy-motion-generator](https://github.com/pham-tuan-binh/reachy-motion-generator) by Binh Pham (Apache-2.0);
+Apache-2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE). The recipe language, planner examples, the flow-matching
+generator (ported to numpy) and the fine-tuned planners' prompt come from
+[reachy-motion-generator](https://github.com/pham-tuan-binh/reachy-motion-generator) by Binh Pham (Apache-2.0); his
+[planner and generator weights](https://huggingface.co/binhpham/reachy-mini-motion-planner-0.8b) (Apache-2.0) are
+downloaded at runtime;
 the animator is [reachy-animation](https://github.com/pham-tuan-binh/reachy-animation) (Apache-2.0); Reachy Mini SDK
 by Pollen Robotics (Apache-2.0).

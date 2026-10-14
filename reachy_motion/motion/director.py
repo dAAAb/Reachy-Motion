@@ -10,6 +10,8 @@ Voice backends call, from any thread:
 
 For each clause a **reflex** gesture can fire immediately (cue words), then the **planner** writes a full recipe;
 both are scheduled on the speaker's playback clock and dropped if they would arrive after the clause was spoken.
+With a ``renderer`` (the flow-matching generator, see ``backends.py``) planned recipes are rendered in the planning
+thread, before they are scheduled; reflexes use its pre-rendered variants, else the built-in noise rendering.
 """
 
 from __future__ import annotations
@@ -67,10 +69,12 @@ class Director:
         late_grace_s: float = 0.4,
         min_clause_chars: int = 6,
         max_clause_chars: int = 36,
+        renderer=None,
     ) -> None:
         """``play(motion)`` starts a motion now (``Animator.play``); ``time_of``/``position`` are the speaker clock."""
         self._play = play
         self.planner = planner
+        self.renderer = renderer  # backends.Renderer | None; both may be swapped at runtime (motion engine switch)
         self.time_of, self.position = time_of, position
         self.on_event = on_event or (lambda e: None)
         self.is_busy = is_busy or (lambda: False)
@@ -124,6 +128,7 @@ class Director:
             finally:
                 self._react_pending = False
             if g is not None and turn == self._turn:
+                self._render(g)
                 self._reaction = g
 
         self._pool.submit(work)
@@ -264,6 +269,7 @@ class Director:
             g = self.planner.plan(clause.text, heard, tone=tone)
             if turn != self._turn:
                 return
+            self._render(g)
             pos = clause.pos
             if isinstance(pos, Future):
                 try:
@@ -275,6 +281,20 @@ class Director:
             self._schedule(g, pos, deadline_pos, turn=turn)
 
         self._pool.submit(work)
+
+    def _render(self, g: Gesture) -> None:
+        """Planning thread: render ``g`` with the generator now, so playing it later costs nothing."""
+        r = self.renderer
+        if r is None or g.poses is not None:
+            return
+        t0 = time.perf_counter()
+        try:
+            g.poses = r.render(g.recipe)
+        except Exception as e:  # noqa: BLE001 - loading / server down / bad recipe: noise rendering at play time
+            logger.debug("generator render failed (%s); using the built-in rendering", e)
+            return
+        g.meta["render_ms"] = round((time.perf_counter() - t0) * 1000)
+        g.latency_ms += g.meta["render_ms"]
 
     def _schedule(self, g: Gesture, pos: float, deadline_pos: float, turn: int | None = None) -> None:
         """Queue ``g``; ``turn`` = the turn it was planned for (a result racing an interrupt() is then dropped)."""
@@ -306,16 +326,22 @@ class Director:
     def _play_recipe(self, g: Gesture, force: bool = True) -> None:
         from reachy_motion.vendor.reachy_animation import Clip
 
-        try:
-            poses = recipe_to_poses(g.recipe)
-        except ValueError as e:
-            logger.warning("bad recipe from %s: %s (%s)", g.source, g.recipe, e)
-            return
+        poses, how = g.poses, "generator"
+        if poses is None and self.renderer is not None:
+            poses = self.renderer.instant(g.recipe)  # pre-rendered reflex variant
+        if poses is None:
+            how = "noise"
+            try:
+                poses = recipe_to_poses(g.recipe)
+            except ValueError as e:
+                logger.warning("bad recipe from %s: %s (%s)", g.source, g.recipe, e)
+                return
         clip = Clip.from_frames(poses, FPS, name=f"{g.source}:{g.idea[:40]}")
         if not force and self.is_busy():
             return
         self._play(clip)
-        self.on_event(
-            {"type": "gesture", "source": g.source, "idea": g.idea, "recipe": g.recipe, "line": g.line,
-             "latency_ms": round(g.latency_ms)}
-        )
+        ev = {"type": "gesture", "source": g.source, "idea": g.idea, "recipe": g.recipe, "line": g.line,
+              "latency_ms": round(g.latency_ms), "render": how}
+        if "planner" in g.meta:
+            ev["planner"] = g.meta["planner"]
+        self.on_event(ev)

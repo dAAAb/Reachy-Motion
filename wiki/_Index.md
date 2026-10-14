@@ -20,6 +20,7 @@ An Obsidian-compatible linked wiki for this repo: research, decisions and measur
 - [[Playback Clock]] — stream positions ↔ wall-clock, why every gesture is scheduled against the speaker
 - [[Gesture Director]] — clause cutting, reflexes, reactions, planner, deadlines
 - [[Motion Recipes]] — the `go / hold / osc` language and how we render it without the flow generator
+- [[Motion Engines]] — 🆕 v0.4: recipe / flow / local — Binh Pham's flow-matching generator (numpy) + fine-tuned planner (MLX), `reachy-motion-server`
 - [[Body Agent]] — 🆕 v0.2: an LLM with tools for spoken control (mode, volume, gaze), camera vision and web lookups
 - [[Running on the Robot]] — 🆕 install on Reachy Mini Wireless, config, shared apps venv, daemon gotchas
 - [[Publishing to the App Store]] — 🆕 HF Space `dAAAb/reachy_motion`, Discover apps, naming + no-git gotchas
@@ -40,7 +41,7 @@ An Obsidian-compatible linked wiki for this repo: research, decisions and measur
 - [[Decision - Recipe Path without the Flow Generator]]
 - [[Decision - Raw WebSocket for ElevenLabs]]
 - [[Decision - Anticipatory Reactions for GPT-Live]]
-- [[Backlog]] — what is next (local MLX motion server, robot speaker from a Mac, …)
+- [[Backlog]] — what is next (robot acceptance of the motion engines, OpenClaw delegation, …)
 
 ## Three sentences for the next person
 
@@ -48,5 +49,5 @@ An Obsidian-compatible linked wiki for this repo: research, decisions and measur
    delivers text at a different time relative to its audio (see [[Playback Clock]]).
 2. LLM planning costs ~1–1.3 s per clause (cloud). Hide it with **reflexes** (0 ms), **text that arrives ahead of
    audio** (ElevenLabs, Taiwanese TTS) or **anticipation from the user's words** (GPT-Live).
-3. The motion language is Binh Pham's recipe DSL (Apache-2.0); a local MLX port of his fine-tuned planner +
-   flow-matching generator is the obvious upgrade ([[Backlog]]).
+3. The motion language is Binh Pham's recipe DSL (Apache-2.0); since v0.4 his flow-matching generator (numpy) and
+   fine-tuned planner (MLX) are optional engines ([[Motion Engines]]).

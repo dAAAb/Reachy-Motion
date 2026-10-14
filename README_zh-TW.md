@@ -37,6 +37,20 @@ Reachy-Motion 是 [Reachy Mini](https://github.com/pollen-robotics/reachy_mini) 
 細節請看 wiki：[架構](wiki/architecture/Architecture.md)、[播放時鐘](wiki/architecture/Playback%20Clock.md)、
 [手勢導演](wiki/architecture/Gesture%20Director.md)、[延遲實測](wiki/findings/Latency%20Measurements.md)。
 
+## 三種動作引擎
+
+在 app 頁面的 **Motion** 切換（或設定 `REACHY_MOTION_MOTION_ENGINE`）：
+
+| 引擎 | 誰寫動作腳本 | 誰把腳本變成動作 | 每句 |
+|---|---|---|---|
+| `recipe`（預設） | 雲端 LLM | 關鍵影格 + 雜訊細節 | ~1.2 秒 |
+| `flow` | 雲端 LLM | Binh Pham 的 **flow-matching 生成模型**（學來的回彈、甩動、微動作） | ~1.4 秒 |
+| `local` | Binh Pham 的**微調規劃模型**（0.8B，MLX） | flow-matching 生成模型 | **~0.75 秒**，不用雲端 |
+
+機器人的 CM4 跑不動即時生成、規劃模型也需要 Apple Silicon，所以在同一個網路的 Mac 上執行
+`pip install -e ".[local]" && reachy-motion-server`，機器人會用 mDNS 自動找到它。
+沒有伺服器時，機器人的反射動作仍會用生成模型預先算好的版本。權重（Apache-2.0）第一次使用時從 Hugging Face 下載。
+
 ## 安裝與執行
 
 ```bash

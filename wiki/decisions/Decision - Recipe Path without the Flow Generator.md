@@ -2,7 +2,7 @@
 title: "Decision - Recipe Path without the Flow Generator"
 date: 2026-10-08
 tags: [decision, motion]
-status: accepted (v0.1)
+status: superseded in part (v0.4) — still the default engine
 ---
 
 # Decision: LLM-written recipes, rendered without the flow-matching generator (v0.1)
@@ -24,3 +24,8 @@ identical to Binh's, so recipes stay compatible with his generator when we add i
 - Planner latency ~1.2 s per clause from the cloud ([[Latency Measurements]]), hidden by the director's tiers.
 - Works directly on Chinese / Taiwanese / English lines (the fine-tuned planners are English-only).
 - Upgrade path in [[Backlog]]: local `/generate-dense`-compatible server on the Mac.
+
+**Update 2026-10-14 (v0.4).** Option 1 is now built as two optional engines, keeping this path as the default
+`recipe` engine: `flow` (cloud planner + the generator) and `local` (fine-tuned planner on MLX + the generator). The
+CUDA-only server was not needed: the generator was ported to numpy and the planner loads in mlx-lm as is. The
+"English-only" worry did not hold — the 0.8B planner handles Chinese clauses well. See [[Motion Engines]].

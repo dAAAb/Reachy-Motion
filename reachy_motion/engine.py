@@ -73,7 +73,8 @@ class Engine:
         """(Re)create the cloud components from the current settings (after keys change on the settings page)."""
         s, robot = self.settings, self.robot
         key = s.openai_api_key or None
-        self.planner = GesturePlanner(s.planner_model, key) if key else None
+        self.cloud_planner = GesturePlanner(s.planner_model, key) if key else None
+        self._build_motion()
         self.body_agent = self.web = self.eyes = None
         if key:
             from reachy_motion.intent import BodyAgent
@@ -85,6 +86,32 @@ class Engine:
                 from reachy_motion.vision import Eyes
 
                 self.eyes = Eyes(robot, s.vision_model, key)
+
+    def _build_motion(self) -> None:
+        from reachy_motion.motion import backends
+
+        s = self.settings
+        self.planner, self.renderer, self.motion_desc = backends.build(
+            s.motion_engine, self.cloud_planner, s.motion_server, s.local_planner)
+        if getattr(self, "director", None) is not None:  # live switch: the running session picks it up
+            self.director.planner, self.director.renderer = self.planner, self.renderer
+        self.emit({"type": "status", "text": "motion: " + self.motion_desc})
+
+    def motion_status(self) -> str:
+        note = getattr(self.renderer, "note", "") if self.renderer is not None else ""
+        return self.motion_desc + (f" — {note}" if note else "")
+
+    def set_motion_engine(self, name: str) -> dict:
+        """Switch recipe / flow / local without restarting the voice; remembered in the device's config file."""
+        from reachy_motion import userconfig
+        from reachy_motion.motion.backends import ENGINES
+
+        if name not in ENGINES:
+            raise ValueError(f"unknown motion engine {name!r}; choose from {ENGINES}")
+        userconfig.write({"REACHY_MOTION_MOTION_ENGINE": name})
+        self.settings.motion_engine = name
+        threading.Thread(target=self._build_motion, name="motion-switch", daemon=True).start()
+        return {"motion_engine": name}
 
     def reconfigure(self, updates: dict) -> dict:
         """Save settings-page edits to the device's config file, reload settings, restart the current mode."""
@@ -346,6 +373,7 @@ class Engine:
         director = Director(
             play=self.animator.play,
             planner=self.planner,
+            renderer=self.renderer,
             time_of=audio.speaker.time_of,
             position=lambda: audio.speaker.position,
             on_event=self.emit,
@@ -355,6 +383,7 @@ class Engine:
         )
         if self.planner is None:
             self.emit({"type": "status", "text": "no OPENAI_API_KEY: gesture planner off, reflex gestures only"})
+        self.director = director
         voice = cls(self.settings, audio, director, self.emit)
         voice.announce = announce
         self.voice, self.audio = voice, audio

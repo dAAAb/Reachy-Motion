@@ -12,11 +12,11 @@ tags: [backlog, roadmap]
       spoken confirmation + recipient allow-list for side effects. (Discussed 2026-10-09, not started.)
 - [ ] Measure `speech_latency_s` / `RobotSpeaker.latency_s` on the robot (sway vs audio alignment).
 - [ ] Anticipatory reactions for ElevenLabs too (first-clause planner gestures are often late on the robot).
-- [ ] **Local motion server on Apple Silicon** — implement Binh's `/generate-dense` contract on the Mac:
-      planner 0.8B/4B via MLX (`mlx_lm.convert -q`, check the `Qwen3_5ForConditionalGeneration` weight layout),
-      flow generator on MPS (`generator.sample.load(ckpt, "mps")`), `Reach.project`. Needs an English
-      "word. context." prompt from the Chinese line (one cheap labelling call, or the reaction planner's `idea`).
-      See [[Decision - Recipe Path without the Flow Generator]].
+- [x] **Local motion server on Apple Silicon** — done in v0.4 ([[Motion Engines]]): numpy generator, MLX planner,
+      `reachy-motion-server` (mDNS `_reachy-motion._tcp`).
+- [ ] Robot acceptance of `flow` / `local` with `reachy-motion-server` on the Mac; measure CM4 in-process render
+      speed (does it pass the 0.25 s per motion-second bar with fewer Euler steps?).
+- [ ] Try the 4B planner (`REACHY_MOTION_LOCAL_PLANNER=4b`, ~9 GB) vs the 0.8B on the same clauses.
 - [ ] Taiwanese ASR: Breeze-ASR-26 returns Mandarin Han; try a Taiwanese-Han output model when one exists.
 
 ## Later

@@ -36,6 +36,7 @@ def add_routes(app, engine: Engine) -> None:
         return {
             "mode": engine.running_mode,
             "modes": list(MODES),
+            "motion": {"engine": engine.settings.motion_engine, "desc": engine.motion_status()},
             "settings": engine.settings.public(),
             "pose": engine.current_pose(),
             "events": engine.events_since(after),
@@ -50,6 +51,15 @@ def add_routes(app, engine: Engine) -> None:
     def stop() -> dict:
         engine.stop()
         return {"ok": True}
+
+    @app.post("/api/motion")
+    def motion(body: dict = Body(default={})) -> dict:  # noqa: B008
+        from fastapi import HTTPException
+
+        try:
+            return engine.set_motion_engine(str(body.get("engine", "")))
+        except ValueError as e:
+            raise HTTPException(400, str(e)) from None
 
     @app.get("/api/config")
     def get_config() -> dict:

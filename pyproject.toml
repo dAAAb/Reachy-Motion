@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "reachy_motion"
-version = "0.3.1"
+version = "0.4.0"
 description = "Live voice chat with Reachy Mini — the robot generates expressive motion from what is being said, in real time."
 readme = "README.md"
 license = { text = "Apache-2.0" }
@@ -32,6 +32,8 @@ dev = ["pytest>=8", "ruff>=0.6"]
 # reachy-motion-asr: standalone Breeze-ASR-26 on Apple Silicon (same pins as the AIRI lab server)
 asr = ["mlx==0.32.3", "mlx-audio==0.4.3", "av>=14", "fastapi>=0.110", "uvicorn>=0.30", "python-multipart>=0.0.9",
        "huggingface-hub>=0.24", "opencc-python-reimplemented>=0.1.7"]
+# "local" motion engine / reachy-motion-server planner: Binh Pham's fine-tuned planner on Apple Silicon
+local = ["mlx-lm>=0.32"]
 # reachy-motion-node (run on the Mac that hosts the Taiwanese models)
 node = ["aiohttp>=3.9"]
 # scripts/record_session.py: render a session in MuJoCo to MP4
@@ -42,6 +44,7 @@ record = ["reachy-mini[mujoco]>=1.10", "imageio-ffmpeg>=0.5", "pillow>=10",
 reachy-motion = "reachy_motion.main:cli"
 reachy-motion-node = "reachy_motion.taigi_node:main"
 reachy-motion-asr = "reachy_motion.asr_server:main"
+reachy-motion-server = "reachy_motion.motion_server:main"
 
 [project.entry-points."reachy_mini_apps"]
 reachy_motion = "reachy_motion.main:ReachyMotion"
