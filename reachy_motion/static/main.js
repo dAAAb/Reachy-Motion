@@ -152,8 +152,11 @@ async function pollServer() {
     const where = s.found ? ` · ${s.host || s.url}` : "";
     const what = s.planner ? ` · planner ${s.planner}` : "";
     const mem = s.rss_mb ? ` · ${(s.rss_mb / 1000).toFixed(1)} GB` : "";
+    const req = s.requests || {};
+    const used = s.last_used_s_ago == null ? " · not used yet"
+      : ` · ${(req.plan || 0)} plans, ${(req.render || 0)} motions, last ${s.last_used_s_ago} s ago`;
     st.textContent = { missing: "— not found", off: `— off${where}`, loading: `— loading…${where}`,
-      on: `— on${where}${what}${mem}`, error: `— error${where}` }[state] || `— ${state}`;
+      on: `— on${where}${what}${mem}${used}`, error: `— error${where}` }[state] || `— ${state}`;
     hint.textContent = state === "missing" ? SRV_HINT_MISSING : (state === "error" ? (s.detail || "") : "");
     btn.hidden = !s.found || state === "loading";
     btn.textContent = state === "on" ? "Stop" : "Start";

@@ -27,6 +27,7 @@ import threading
 import time
 
 import numpy as np
+from fastapi import Request  # module level: endpoint annotations are strings (postponed evaluation)
 
 from reachy_motion.motion.backends import DEFAULT_PORT, LOCAL_PLANNERS, SERVICE_TYPE, LocalPlanner, can_run_mlx
 from reachy_motion.motion.flow import FPS, FlowRenderer, _rpy_to_mat
@@ -54,6 +55,13 @@ class Models:
         self.planner: LocalPlanner | None = None
         self.state, self.detail = "off", ""
         self._lock = threading.Lock()
+        self.counts = {"render": 0, "plan": 0}
+        self.last_client: str | None = None
+        self.last_at: float | None = None
+
+    def used(self, kind: str, client: str | None) -> None:
+        self.counts[kind] += 1
+        self.last_client, self.last_at = client, time.time()
 
     def start(self) -> None:
         with self._lock:
@@ -106,7 +114,9 @@ class Models:
         p = self.planner
         return {"state": self.state, "detail": self.detail, "generator": self.gen.ready,
                 "planner": (p.name.split(":", 1)[1] if p else None), "planner_ready": bool(p and p.ready),
-                "planner_size": self.planner_size, "host": socket.gethostname().split(".")[0], "rss_mb": rss, "v": 2}
+                "planner_size": self.planner_size, "host": socket.gethostname().split(".")[0], "rss_mb": rss,
+                "requests": dict(self.counts), "last_client": self.last_client,
+                "last_used_s_ago": None if self.last_at is None else round(time.time() - self.last_at), "v": 2}
 
 
 def make_app(models: Models):
@@ -151,15 +161,17 @@ def make_app(models: Models):
         return models.health()
 
     @app.post("/render")
-    def render_ep(body: dict = Body(...)) -> dict:  # noqa: B008
+    def render_ep(request: Request, body: dict = Body(...)) -> dict:  # noqa: B008
         t0 = time.perf_counter()
         A = render(str(body.get("recipe", "")), body.get("seed"))
+        models.used("render", request.client.host if request.client else None)
         return {"poses": np.round(A, 5).tolist(), "fps": FPS, "ms": round((time.perf_counter() - t0) * 1000)}
 
     @app.post("/plan")
-    def plan_ep(body: dict = Body(...)) -> dict:  # noqa: B008
+    def plan_ep(request: Request, body: dict = Body(...)) -> dict:  # noqa: B008
         t0 = time.perf_counter()
         idea, recipe = plan(str(body.get("prompt", "")), body.get("retries", 2))
+        models.used("plan", request.client.host if request.client else None)
         return {"idea": idea, "recipe": recipe, "ms": round((time.perf_counter() - t0) * 1000)}
 
     @app.post("/generate-dense")
