@@ -107,7 +107,7 @@ def _advertise(port: int, planner: str | None):
     info = ServiceInfo(SERVICE_TYPE, f"Reachy Motion on {host}.{SERVICE_TYPE}", addresses=[socket.inet_aton(lan_ip())],
                        port=port, properties={"planner": planner or "", "v": "1"}, server=f"{host}.local.")
     zc = Zeroconf()
-    zc.register_service(info)
+    zc.register_service(info, allow_name_change=True)  # a second Mac (or a stale record) gets "… (2)"
     return zc, info
 
 
@@ -120,6 +120,16 @@ def main() -> None:
     p.add_argument("--no-mdns", action="store_true")
     a = p.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+
+    import httpx
+
+    try:  # one per machine: if it is already running, say so instead of failing on the port / mDNS name
+        h = httpx.get(f"http://127.0.0.1:{a.port}/health", timeout=1).json()
+        print(f"  reachy-motion-server is already running on port {a.port} (planner: {h.get('planner') or '—'}). "
+              "Nothing to do.")
+        return
+    except (httpx.HTTPError, ValueError):
+        pass
 
     gen = FlowRenderer()
     planner = None
